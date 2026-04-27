@@ -263,12 +263,19 @@ export function DashboardShell() {
   }
 
   async function handleUserDeactivate(userId: string) {
-    if (confirm('Are you sure you want to deactivate this user?')) {
-      try {
+    if (!confirm('Are you sure you want to deactivate this user?')) return;
+
+    try {
+      // Ask whether to permanently delete or just deactivate.
+      const hard = confirm('Permanently delete this user from the system? OK = permanently delete, Cancel = just deactivate.');
+
+      if (hard) {
+        await hardDeleteUser(userId);
+      } else {
         await deactivateUser(userId);
-      } catch {
-        // Shared feedback handles request failures.
       }
+    } catch {
+      // Shared feedback handles request failures.
     }
   }
 
@@ -316,12 +323,18 @@ export function DashboardShell() {
   }
 
   async function handleScheduleDelete(scheduleId: string) {
-    if (confirm('Are you sure you want to cancel this schedule?')) {
-      try {
+    if (!confirm('Are you sure you want to cancel this schedule?')) return;
+
+    try {
+      const hard = confirm('Permanently delete this schedule? OK = permanently delete, Cancel = just cancel.');
+
+      if (hard) {
+        await hardDeleteSchedule(scheduleId);
+      } else {
         await deleteSchedule(scheduleId);
-      } catch {
-        // Shared feedback handles request failures.
       }
+    } catch {
+      // Shared feedback handles request failures.
     }
   }
 

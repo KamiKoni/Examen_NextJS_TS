@@ -167,6 +167,9 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     const session = await requireSession(request);
     const { id } = await context.params;
 
+    const url = new URL(request.url);
+    const hard = url.searchParams.get('hard') === 'true';
+
     if (!canManageSchedules(session.role)) {
       throw new AppError(403, "FORBIDDEN", "You cannot delete schedules.");
     }
@@ -187,6 +190,25 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     }
 
     assertCanManageAssignment(session.role, current.assignedUser.role);
+
+    if (hard) {
+      if (session.role !== 'ADMIN') {
+        throw new AppError(403, 'FORBIDDEN', 'Only admins can permanently delete schedules.');
+      }
+
+      const deleted = await prisma.schedule.delete({ where: { id } });
+
+      await createAuditLog(prisma, {
+        actorId: session.id,
+        action: "SCHEDULE_HARD_DELETED",
+        entityType: "schedule",
+        entityId: deleted.id,
+        description: `${session.email} permanently deleted schedule ${deleted.title}.`,
+        metadata: null,
+      });
+
+      return ok({ schedule: serializeSchedule(deleted) });
+    }
 
     const updated = await prisma.schedule.update({
       where: { id },

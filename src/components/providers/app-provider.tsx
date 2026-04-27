@@ -45,9 +45,11 @@ interface AppContextValue {
   createUser: (payload: CreateUserPayload) => Promise<void>;
   updateUser: (id: string, payload: UpdateUserPayload) => Promise<void>;
   deactivateUser: (id: string) => Promise<void>;
+  hardDeleteUser: (id: string) => Promise<void>;
   createSchedule: (payload: CreateSchedulePayload) => Promise<void>;
   updateSchedule: (id: string, payload: UpdateSchedulePayload) => Promise<void>;
   deleteSchedule: (id: string) => Promise<void>;
+  hardDeleteSchedule: (id: string) => Promise<void>;
   clearNotification: () => void;
 }
 
@@ -281,6 +283,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
           body: JSON.stringify(payload),
         });
       }, "User created."),
+      hardDeleteUser: async (id: string) =>
+        withMutation(async () => {
+          await requestData(`/api/users/${id}?hard=true`, {
+            method: 'DELETE',
+          });
+        }, 'User permanently deleted.'),
     updateUser: async (id, payload) =>
       withMutation(async () => {
         await requestData(`/api/users/${id}`, {
@@ -305,6 +313,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         "User deactivated.",
         false,
       ),
+      hardDeleteSchedule: async (id: string) =>
+        withMutation(async () => {
+          await requestData(`/api/schedules/${id}?hard=true`, {
+            method: 'DELETE',
+          });
+        }, 'Schedule permanently deleted.'),
     createSchedule: async (payload) =>
       withMutation(async () => {
         await requestData("/api/schedules", {

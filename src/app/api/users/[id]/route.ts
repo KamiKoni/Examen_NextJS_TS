@@ -141,6 +141,8 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const session = await requireSession(request);
     const { id } = await context.params;
+    const url = new URL(request.url);
+    const hard = url.searchParams.get('hard') === 'true';
 
     if (!canManageUsers(session.role)) {
       throw new AppError(403, "FORBIDDEN", "You cannot deactivate users.");
@@ -164,6 +166,25 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     }
 
     assertCanManageRole(session.role, target.role);
+
+    if (hard) {
+      if (session.role !== 'ADMIN') {
+        throw new AppError(403, 'FORBIDDEN', 'Only admins can permanently delete users.');
+      }
+
+      const deleted = await prisma.user.delete({ where: { id } });
+
+      await createAuditLog(prisma, {
+        actorId: session.id,
+        action: "USER_HARD_DELETED",
+        entityType: "user",
+        entityId: deleted.id,
+        description: `${session.email} permanently deleted ${deleted.email}.`,
+        metadata: null,
+      });
+
+      return ok({ user: serializeUser(deleted) });
+    }
 
     const updated = await prisma.user.update({
       where: { id },
