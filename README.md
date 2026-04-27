@@ -1,22 +1,22 @@
 # ClockHub
 
-Aplicación full-stack para operación interna con autenticación segura, gestión de usuarios y horarios, auditoría operativa y carga de documentos, construida con Next.js, TypeScript y PostgreSQL vía Prisma.
+ClockHub is a full‑stack internal operations application that provides secure authentication, user and schedule management, operational auditing, and document upload/processing. It is built with Next.js, TypeScript and PostgreSQL (Prisma).
 
-## Vista general
+## Overview
 
-ClockHub arranca con una pantalla de acceso enfocada en producto: presenta el contexto operativo, muestra credenciales demo sembradas y redirige automáticamente al dashboard cuando ya existe una sesión válida. Desde ahí, el dashboard centraliza:
+The app starts with a product‑focused login screen that shows the operational context, displays seeded demo credentials during local development, and automatically redirects to the dashboard when a valid session exists. From the dashboard you can:
 
-- control de acceso por roles
-- administración de usuarios
-- creación y edición de horarios
-- auditoría de acciones críticas
-- carga y análisis de documentos
+- manage role‑based access
+- administer users
+- create and edit schedules
+- audit critical actions
+- upload and process documents
 
-## Documentación técnica
+## Technical documentation
 
-- [Diagrama ER](./docs/ERD.md)
-- [Guía de entrega](./docs/DELIVERY.md)
-- [Recorrido del código](./docs/CODEBASE.md)
+- ER diagram: `./docs/ERD.md`
+- Delivery guide: `./docs/DELIVERY.md`
+- Codebase walkthrough: `./docs/CODEBASE.md`
 
 ## Stack
 
@@ -24,37 +24,34 @@ ClockHub arranca con una pantalla de acceso enfocada en producto: presenta el co
 - TypeScript
 - PostgreSQL
 - Prisma ORM
-- JWT + Refresh Tokens + HttpOnly Cookies
+- JWT access + refresh tokens with rotation and HttpOnly cookies
 - Tailwind CSS 4
-- Zod para validaciones
+- Zod for validation
 
-## Funcionalidades
+## Features
 
-- Autenticación con access token corto y refresh token rotado.
-- Cookies `HttpOnly`, `SameSite=Lax` y `Secure` en producción.
-- Compatibilidad con `Authorization: Bearer <token>` en rutas protegidas.
-- Roles `ADMIN`, `MANAGER` y `EMPLOYEE`.
-- Pantalla de login responsiva con credenciales demo visibles para entorno local.
-- CRUD REST para usuarios y horarios.
-- Paginación por `limit`, `offset` o `page` en endpoints de listado.
-- Detección de conflictos por solapamiento de horarios.
-- Auditoría de login, logout, refresh, cambios de usuarios y horarios.
-- Carga y procesamiento de documentos desde el dashboard.
-- Dashboard responsivo con `Context API` y hooks.
-- Manejo centralizado de errores en backend y frontend.
+- Short‑lived access tokens and rotating refresh tokens
+- `HttpOnly`, `SameSite=Lax`, and `Secure` cookies in production
+- Support for `Authorization: Bearer <token>` on protected routes
+- Roles: `ADMIN`, `MANAGER`, `EMPLOYEE`
+- Responsive login with demo credentials available locally
+- REST CRUD for users and schedules
+- Pagination via `limit`, `offset` or `page` on list endpoints
+- Overlap detection to prevent conflicting schedules
+- Audit logs for login, logout, refresh and data changes
+- Document upload and server‑side processing from the dashboard
+- Responsive dashboard using Context API and hooks
+- Centralized error handling on frontend and backend
 
-## Modelo de permisos
+## Permissions model
 
-- `ADMIN`
-  Administra todos los usuarios, horarios y auditoría.
-- `MANAGER`
-  Administra usuarios con rol `EMPLOYEE`, sus horarios y auditoría.
-- `EMPLOYEE`
-  Consulta su sesión y sus propios horarios.
+- `ADMIN` — full administration of users, schedules and audit logs
+- `MANAGER` — manage `EMPLOYEE` users, their schedules and view audit logs
+- `EMPLOYEE` — view own session and own schedules
 
-## Variables de entorno
+## Environment variables
 
-Copia `.env.example` a `.env` y ajusta los valores:
+Copy `.env.example` to `.env` and update values:
 
 ```env
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/clockhub?schema=public"
@@ -64,82 +61,82 @@ JWT_ACCESS_EXPIRES_IN="15m"
 JWT_REFRESH_EXPIRES_IN="7d"
 ```
 
-## Puesta en marcha
+## Getting started
 
-1. Instala dependencias:
+1. Install dependencies:
 
 ```bash
 npm install
 ```
 
-2. Genera el cliente de Prisma:
+2. Generate the Prisma client:
 
 ```bash
 npm run prisma:generate
 ```
 
-3. Aplica el esquema a PostgreSQL:
+3. Push the schema to PostgreSQL:
 
 ```bash
 npm run prisma:push
 ```
 
-4. Carga datos de ejemplo:
+4. Seed example data:
 
 ```bash
 npm run db:seed
 ```
 
-5. Inicia el entorno de desarrollo:
+5. Start the development server:
 
 ```bash
 npm run dev
 ```
 
-6. Abre `http://localhost:3000/auth/login` e ingresa con alguna de las credenciales demo.
+6. Open `http://localhost:3000/auth/login` and sign in using one of the demo accounts.
 
-## PostgreSQL con Docker
+## PostgreSQL with Docker
 
-Si no tienes PostgreSQL local, puedes levantarlo con Docker usando el archivo `docker-compose.yml` incluido en la raíz del proyecto.
+If you do not have a local PostgreSQL instance, use Docker Compose with the included `docker-compose.yml`:
 
-1. Inicia la base:
+1. Start the database:
 
 ```bash
 docker compose up -d
 ```
 
-2. Verifica que el contenedor esté sano:
+2. Check container health:
 
 ```bash
 docker compose ps
 ```
 
-3. Aplica el esquema y carga datos:
+3. Push schema and seed data:
 
 ```bash
 npm run prisma:push
 npm run db:seed
 ```
 
-4. Cuando termines, puedes detenerlo con:
+4. Stop the database when finished:
 
 ```bash
 docker compose down
 ```
 
-Si quieres eliminar también el volumen persistente:
+To also remove the persistent volume:
 
 ```bash
 docker compose down -v
 ```
 
-## Credenciales de seed
+## Seed credentials
 
 - `admin@clockhub.local` / `ChangeMe123!`
 - `manager@clockhub.local` / `ChangeMe123!`
 - `employee@clockhub.local` / `ChangeMe123!`
 
-## Endpoints principales
+## Main endpoints
 
 ### Auth
 
@@ -151,7 +148,7 @@ docker compose down -v
 - `POST /api/auth/logout`
 - `GET /api/auth/me`
 
-### Usuarios
+### Users
 
 - `GET /api/users`
 - `POST /api/users`
@@ -160,7 +157,7 @@ docker compose down -v
 - `PATCH /api/users/:id`
 - `DELETE /api/users/:id`
 
-### Horarios
+### Schedules
 
 - `GET /api/schedules`
 - `POST /api/schedules`
@@ -169,68 +166,68 @@ docker compose down -v
 - `PATCH /api/schedules/:id`
 - `DELETE /api/schedules/:id`
 
-### Auditoría y dashboard
+### Audit and dashboard
 
 - `GET /api/audit`
 - `GET /api/dashboard`
 - `GET /api/health`
 
-## Reglas de negocio destacadas
+## Key business rules
 
-- Un horario no puede terminar antes o al mismo tiempo que empieza.
-- No se permite crear ni editar horarios que se solapen para el mismo usuario, salvo que el horario previo esté cancelado.
-- Los managers no pueden crear, modificar o desactivar admins ni managers.
-- Un usuario no puede desactivar su propia cuenta desde el panel.
-- Cada acción crítica genera una entrada en `AuditLog`.
+- A schedule cannot end before or at the same time it starts.
+- Creating or editing schedules that overlap for the same user is not allowed unless the previous schedule is cancelled.
+- Managers cannot create, modify or deactivate admins or other managers.
+- A user cannot deactivate their own account from the admin panel.
+- Every critical action generates an entry in `AuditLog`.
 
-## Autenticación en rutas protegidas
+## Authentication on protected routes
 
-Las rutas protegidas aceptan cualquiera de estos mecanismos:
+Protected routes accept either of these mechanisms:
 
 ```http
 Authorization: Bearer <access_token>
 ```
 
-o las cookies HttpOnly generadas por el login.
+or the `HttpOnly` cookies issued at login.
 
-Respuestas esperadas:
+Expected responses:
 
-- `401` cuando falta token, está expirado o es inválido.
-- `403` cuando el usuario está autenticado pero no tiene el rol suficiente.
+- `401` when a token is missing, expired or invalid.
+- `403` when an authenticated user lacks sufficient role permissions.
 
-## Paginación
+## Pagination
 
-Los endpoints de listado aceptan:
+List endpoints accept:
 
 - `limit`
 - `offset`
 - `page`
 
-Ejemplo:
+Example:
 
 ```bash
 curl "http://localhost:3000/api/schedules?limit=10&page=2" \
   -H "Authorization: Bearer <access_token>"
 ```
 
-La respuesta incluye `meta.pagination` con `total`, `page`, `offset`, `limit` y `totalPages`.
+Responses include `meta.pagination` with `total`, `page`, `offset`, `limit` and `totalPages`.
 
-## Filtros de auditoría
+## Audit filters
 
-`GET /api/audit` acepta además:
+`GET /api/audit` also accepts:
 
 - `action`
 - `actorId`
 - `entityType`
 
-Ejemplo:
+Example:
 
 ```bash
 curl "http://localhost:3000/api/audit?action=AUTH_LOGIN&entityType=session" \
   -H "Authorization: Bearer <access_token>"
 ```
 
-## Comandos útiles
+## Useful commands
 
 ```bash
 npm run dev
@@ -241,7 +238,7 @@ npm run prisma:push
 npm run db:seed
 ```
 
-## Estructura
+## Project structure
 
 ```text
 prisma/
@@ -261,11 +258,11 @@ src/
   types/
 ```
 
-## Notas
+## Notes
 
- - `src/proxy.ts` protege `/dashboard` y evita mostrar el login cuando ya existe sesión.
-- El login precarga las credenciales del usuario administrador para acelerar pruebas locales.
-- La app espera PostgreSQL real; sin `DATABASE_URL` válido, Prisma y las rutas protegidas no podrán inicializarse.
-- Para producción, usa secretos largos y distintos para access y refresh tokens.
-- La guía de módulos y flujo interno está en `docs/CODEBASE.md`.
-- El diagrama ER y el flujo JWT están en `docs/DELIVERY.md`.
+- `src/proxy.ts` protects `/dashboard` and prevents showing the login screen when a session already exists.
+- The login screen preloads the admin credentials to speed up local testing.
+- The app expects a real PostgreSQL instance; without a valid `DATABASE_URL`, Prisma and protected routes cannot initialize.
+- For production, use distinct, long secrets for access and refresh tokens.
+- Module and internal flow documentation is in `docs/CODEBASE.md`.
+- The ER diagram and JWT flow are in `docs/DELIVERY.md`.

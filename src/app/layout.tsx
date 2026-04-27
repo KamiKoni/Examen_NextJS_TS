@@ -8,16 +8,19 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ClockHub",
-  description: "Shift planning, secure auth, and audit-ready operations dashboard.",
+  description:
+    "Shift planning, secure auth, and audit-ready operations dashboard.",
   openGraph: {
     title: "ClockHub",
-    description: "Shift planning, secure auth, and audit-ready operations dashboard.",
+    description:
+      "Shift planning, secure auth, and audit-ready operations dashboard.",
     type: "website",
   },
   twitter: {
     card: "summary",
     title: "ClockHub",
-    description: "Shift planning, secure auth, and audit-ready operations dashboard.",
+    description:
+      "Shift planning, secure auth, and audit-ready operations dashboard.",
   },
   robots: { index: true, follow: true },
   icons: { icon: "/favicon.ico" },
