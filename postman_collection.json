@@ -174,6 +174,102 @@
           "query": [{ "key": "hard", "value": "true" }]
         }
       }
+    },
+    {
+      "name": "Users - Get by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/users/{{userId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users", "{{userId}}"]
+        }
+      }
+    },
+    {
+      "name": "Users - Update (PUT)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"updated+1@example.com\",\n  \"role\": \"EMPLOYEE\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/users/{{userId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users", "{{userId}}"]
+        }
+      }
+    },
+    {
+      "name": "Users - Search",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/users/search?q={{q}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users", "search"],
+          "query": [{ "key": "q", "value": "{{q}}" }]
+        }
+      }
+    },
+    {
+      "name": "Schedules - Get by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/schedules/{{scheduleId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "schedules", "{{scheduleId}}"]
+        }
+      }
+    },
+    {
+      "name": "Schedules - Update (PUT)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Updated Shift\",\n  \"description\": \"Updated\",\n  \"assignedUserId\": \"{{userId}}\",\n  \"startAt\": \"2026-05-02T09:00:00.000Z\",\n  \"endAt\": \"2026-05-02T17:00:00.000Z\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/schedules/{{scheduleId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "schedules", "{{scheduleId}}"]
+        }
+      }
+    },
+    {
+      "name": "Schedules - Search",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/schedules/search?q={{q}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "schedules", "search"],
+          "query": [{ "key": "q", "value": "{{q}}" }]
+        }
+      }
     }
   ],
   "event": [],
