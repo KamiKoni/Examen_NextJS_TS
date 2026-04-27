@@ -4,6 +4,7 @@ import { fail, ok } from "@/lib/api";
 import { requireSession } from "@/lib/session";
 import { serializeSessionUser } from "@/lib/serializers";
 
+// Returns the current authenticated user for lightweight session checks.
 export async function GET(request: NextRequest) {
   try {
     const user = await requireSession(request);

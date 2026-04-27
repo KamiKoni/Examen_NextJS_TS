@@ -3,6 +3,7 @@ import type { AuditLog, Role, Schedule, ScheduleStatus, User } from "@prisma/cli
 import { isEnabledStatus } from "@/lib/constants";
 import type { AuditLogRecord, ScheduleRecord, SessionUser, UserRecord } from "@/types/app";
 
+// Serializers convert Prisma entities into plain JSON-safe records for the frontend.
 type UserShape = Pick<
   User,
   "id" | "name" | "email" | "role" | "status" | "createdAt" | "updatedAt"

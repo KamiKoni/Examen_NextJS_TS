@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { ACCESS_COOKIE_NAME, REFRESH_COOKIE_NAME } from "@/lib/constants";
 import { getEnv } from "@/lib/env";
 
+// Token payloads are kept intentionally small so cookies only carry identity and session data.
 export interface AccessTokenPayload {
   sub: string;
   email: string;
@@ -72,6 +73,7 @@ function cookieOptions(maxAge: number) {
 export async function setAuthCookies(accessToken: string, refreshToken: string) {
   const store = await cookies();
 
+  // Access and refresh cookies intentionally use different lifetimes.
   store.set(ACCESS_COOKIE_NAME, accessToken, cookieOptions(60 * 15));
   store.set(REFRESH_COOKIE_NAME, refreshToken, cookieOptions(60 * 60 * 24 * 7));
 }

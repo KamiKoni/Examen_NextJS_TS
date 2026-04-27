@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 
+// Reuse a single Prisma client during development to avoid connection churn on HMR.
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
 };

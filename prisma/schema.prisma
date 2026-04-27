@@ -1,3 +1,4 @@
+/// Prisma schema for authentication, scheduling, auditing and document ingestion.
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,24 +8,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// Application roles used by both access control and UI filtering.
 enum Role {
   ADMIN
   MANAGER
   EMPLOYEE
 }
 
+/// Account status determines whether a user may authenticate or be assigned work.
 enum UserStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
 }
 
+/// Schedules remain queryable even when cancelled so the audit trail stays intact.
 enum ScheduleStatus {
   PLANNED
   APPROVED
   CANCELLED
 }
 
+/// Audit events capture the critical actions exposed by the product.
 enum AuditAction {
   AUTH_LOGIN
   AUTH_LOGOUT
@@ -35,8 +40,25 @@ enum AuditAction {
   SCHEDULE_CREATED
   SCHEDULE_UPDATED
   SCHEDULE_DELETED
+  DOCUMENT_UPLOADED
+  DOCUMENT_ANALYZED
 }
 
+/// Document types currently accepted by the upload workflow.
+enum DocumentType {
+  PDF
+  XLSX
+  CSV
+}
+
+/// Processing status for uploaded documents.
+enum DocumentStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+/// Core actor in the system: owns sessions, schedules, audits and uploaded documents.
 model User {
   id               String         @id @default(cuid())
   email            String         @unique
@@ -51,8 +73,10 @@ model User {
   updatedSchedules  Schedule[]    @relation("UpdatedSchedules")
   refreshTokens     RefreshToken[]
   auditLogs         AuditLog[]    @relation("AuditActor")
+  documents         Document[]
 }
 
+/// Persisted refresh session used for rotation and revocation.
 model RefreshToken {
   id                String    @id @default(cuid())
   userId            String
@@ -68,6 +92,7 @@ model RefreshToken {
   @@index([userId, revokedAt])
 }
 
+/// Work assignment linked to an employee and the users who created or updated it.
 model Schedule {
   id             String         @id @default(cuid())
   title          String
@@ -87,6 +112,7 @@ model Schedule {
   @@index([assignedUserId, startAt, endAt])
 }
 
+/// Immutable activity trail for security and operational events.
 model AuditLog {
   id          String      @id @default(cuid())
   actorId     String?
@@ -100,4 +126,22 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@index([createdAt])
+}
+/// Uploaded file plus extracted content and processing outcome.
+model Document {
+  id          String           @id @default(cuid())
+  uploadedBy  String
+  fileName    String
+  fileType    DocumentType
+  status      DocumentStatus   @default(PENDING)
+  fileSize    Int
+  extractedText String?
+  parsedData  Json?
+  errorMessage String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  uploader    User             @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  @@index([uploadedBy, createdAt])
+  @@index([status])
 }

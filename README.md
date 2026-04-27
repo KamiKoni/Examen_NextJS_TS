@@ -1,6 +1,16 @@
 # ClockHub
 
-Aplicación full-stack con Next.js, TypeScript y PostgreSQL vía Prisma para gestionar autenticación segura, usuarios, roles, horarios y auditoría operativa.
+Aplicación full-stack para operación interna con autenticación segura, gestión de usuarios y horarios, auditoría operativa y carga de documentos, construida con Next.js, TypeScript y PostgreSQL vía Prisma.
+
+## Vista general
+
+ClockHub arranca con una pantalla de acceso enfocada en producto: presenta el contexto operativo, muestra credenciales demo sembradas y redirige automáticamente al dashboard cuando ya existe una sesión válida. Desde ahí, el dashboard centraliza:
+
+- control de acceso por roles
+- administración de usuarios
+- creación y edición de horarios
+- auditoría de acciones críticas
+- carga y análisis de documentos
 
 ## Stack
 
@@ -16,10 +26,14 @@ Aplicación full-stack con Next.js, TypeScript y PostgreSQL vía Prisma para ges
 
 - Autenticación con access token corto y refresh token rotado.
 - Cookies `HttpOnly`, `SameSite=Lax` y `Secure` en producción.
+- Compatibilidad con `Authorization: Bearer <token>` en rutas protegidas.
 - Roles `ADMIN`, `MANAGER` y `EMPLOYEE`.
+- Pantalla de login responsiva con credenciales demo visibles para entorno local.
 - CRUD REST para usuarios y horarios.
+- Paginación por `limit`, `offset` o `page` en endpoints de listado.
 - Detección de conflictos por solapamiento de horarios.
 - Auditoría de login, logout, refresh, cambios de usuarios y horarios.
+- Carga y procesamiento de documentos desde el dashboard.
 - Dashboard responsivo con `Context API` y hooks.
 - Manejo centralizado de errores en backend y frontend.
 
@@ -76,6 +90,8 @@ npm run db:seed
 npm run dev
 ```
 
+6. Abre `http://localhost:3000/auth/login` e ingresa con alguna de las credenciales demo.
+
 ## PostgreSQL con Docker
 
 Si no tienes PostgreSQL local, puedes levantarlo con Docker usando la configuración incluida en [docker-compose.yml](/c:/Users/TUF/Pictures/clockhub/docker-compose.yml:1).
@@ -121,7 +137,10 @@ docker compose down -v
 
 ### Auth
 
+- `POST /api/auth/signup`
+- `POST /api/auth/register`
 - `POST /api/auth/login`
+- `POST /api/auth/refresh-token`
 - `POST /api/auth/refresh`
 - `POST /api/auth/logout`
 - `GET /api/auth/me`
@@ -131,6 +150,7 @@ docker compose down -v
 - `GET /api/users`
 - `POST /api/users`
 - `GET /api/users/:id`
+- `PUT /api/users/:id`
 - `PATCH /api/users/:id`
 - `DELETE /api/users/:id`
 
@@ -139,6 +159,7 @@ docker compose down -v
 - `GET /api/schedules`
 - `POST /api/schedules`
 - `GET /api/schedules/:id`
+- `PUT /api/schedules/:id`
 - `PATCH /api/schedules/:id`
 - `DELETE /api/schedules/:id`
 
@@ -154,6 +175,38 @@ docker compose down -v
 - Los managers no pueden crear, modificar o desactivar admins ni managers.
 - Un usuario no puede desactivar su propia cuenta desde el panel.
 - Cada acción crítica genera una entrada en `AuditLog`.
+
+## Autenticación en rutas protegidas
+
+Las rutas protegidas aceptan cualquiera de estos mecanismos:
+
+```http
+Authorization: Bearer <access_token>
+```
+
+o las cookies HttpOnly generadas por el login.
+
+Respuestas esperadas:
+
+- `401` cuando falta token, está expirado o es inválido.
+- `403` cuando el usuario está autenticado pero no tiene el rol suficiente.
+
+## Paginación
+
+Los endpoints de listado aceptan:
+
+- `limit`
+- `offset`
+- `page`
+
+Ejemplo:
+
+```bash
+curl "http://localhost:3000/api/schedules?limit=10&page=2" \
+  -H "Authorization: Bearer <access_token>"
+```
+
+La respuesta incluye `meta.pagination` con `total`, `page`, `offset`, `limit` y `totalPages`.
 
 ## Comandos útiles
 
@@ -178,6 +231,9 @@ src/
     auth/login/
     dashboard/
   components/
+    auth/
+    dashboard/
+    ui/
   hooks/
   lib/
   types/
@@ -185,6 +241,9 @@ src/
 
 ## Notas
 
-- `middleware.ts` protege `/dashboard` y evita mostrar el login cuando ya existe sesión.
+ - `src/proxy.ts` protege `/dashboard` y evita mostrar el login cuando ya existe sesión.
+- El login precarga las credenciales del usuario administrador para acelerar pruebas locales.
 - La app espera PostgreSQL real; sin `DATABASE_URL` válido, Prisma y las rutas protegidas no podrán inicializarse.
 - Para producción, usa secretos largos y distintos para access y refresh tokens.
+- La guía de módulos y flujo interno está en `docs/CODEBASE.md`.
+- El diagrama ER y el flujo JWT están en `docs/DELIVERY.md`.

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   createContext,
@@ -8,10 +8,13 @@ import {
   useRef,
   useState,
   type ReactNode,
-} from "react";
+} from 'react';
 
-import { AuthContext, type AuthContextValue } from "@/context/auth-context";
-import { ScheduleContext, type ScheduleContextValue } from "@/context/schedule-context";
+import { AuthContext, type AuthContextValue } from '@/context/auth-context';
+import {
+  ScheduleContext,
+  type ScheduleContextValue,
+} from '@/context/schedule-context';
 import type {
   CreateSchedulePayload,
   CreateUserPayload,
@@ -23,8 +26,9 @@ import type {
   UserRecord,
   ScheduleRecord,
   AuditLogRecord,
-} from "@/types/app";
+} from '@/types/app';
 
+// AppProvider owns client-side session state, dashboard data and mutation helpers.
 interface AppContextValue {
   session: SessionUser | null;
   users: UserRecord[];
@@ -48,7 +52,7 @@ interface AppContextValue {
 const AppContext = createContext<AppContextValue | null>(null);
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Unexpected request error.";
+  return error instanceof Error ? error.message : 'Unexpected request error.';
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -58,16 +62,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [auditLogs, setAuditLogs] = useState<AuditLogRecord[]>([]);
   const [bootstrapping, setBootstrapping] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [notification, setNotification] = useState<NotificationState | null>(null);
+  const [notification, setNotification] = useState<NotificationState | null>(
+    null
+  );
   const refreshPromiseRef = useRef<Promise<boolean> | null>(null);
   const bootstrapRef = useRef<(() => Promise<void>) | null>(null);
 
   async function refreshAuth() {
+    // Reuse a single in-flight refresh request so parallel 401s do not stampede the backend.
     if (!refreshPromiseRef.current) {
       refreshPromiseRef.current = (async () => {
-        const response = await fetch("/api/auth/refresh", {
-          method: "POST",
-          credentials: "same-origin",
+        const response = await fetch('/api/auth/refresh', {
+          method: 'POST',
+          credentials: 'same-origin',
         });
 
         return response.ok;
@@ -79,12 +86,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return refreshPromiseRef.current;
   }
 
-  async function requestData<T>(url: string, init?: RequestInit, retry = true): Promise<T> {
+  async function requestData<T>(
+    url: string,
+    init?: RequestInit,
+    retry = true
+  ): Promise<T> {
+    // All client requests share cookie credentials and the same auto-refresh retry behavior.
     const response = await fetch(url, {
       ...init,
-      credentials: "same-origin",
+      credentials: 'same-origin',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         ...(init?.headers ?? {}),
       },
     });
@@ -104,7 +116,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     if (!response.ok || payload.success === false) {
-      throw new Error(payload.error?.message ?? "Request failed.");
+      throw new Error(payload.error?.message ?? 'Request failed.');
     }
 
     return payload.data as T;
@@ -114,8 +126,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setBusy(true);
 
     try {
-      const data = await requestData<{ dashboard: DashboardSummary }>("/api/dashboard");
+      const data = await requestData<{ dashboard: DashboardSummary }>(
+        '/api/dashboard'
+      );
 
+      // Transition the large dashboard payload to keep urgent input responsive.
       startTransition(() => {
         setSession(data.dashboard.session);
         setUsers(data.dashboard.users);
@@ -138,6 +153,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   bootstrapRef.current = refreshDashboard;
 
   useEffect(() => {
+    // Delay bootstrap until after mount so the initial render stays deterministic.
     const timer = window.setTimeout(() => {
       void bootstrapRef.current?.();
     }, 0);
@@ -151,19 +167,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setBusy(true);
 
     try {
-      await requestData<{ user: SessionUser }>("/api/auth/login", {
-        method: "POST",
+      await requestData<{ user: SessionUser }>('/api/auth/login', {
+        method: 'POST',
         body: JSON.stringify({ email, password }),
       });
 
       await refreshDashboard();
       setNotification({
-        tone: "success",
-        message: "Session started successfully.",
+        tone: 'success',
+        message: 'Session started successfully.',
       });
     } catch (error) {
       setNotification({
-        tone: "error",
+        tone: 'error',
         message: getErrorMessage(error),
       });
       throw error;
@@ -176,7 +192,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setBusy(true);
 
     try {
-      await requestData<{ success: boolean }>("/api/auth/logout", { method: "POST" }, false);
+      await requestData<{ success: boolean }>(
+        '/api/auth/logout',
+        { method: 'POST' },
+        false
+      );
     } finally {
       startTransition(() => {
         setSession(null);
@@ -184,9 +204,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setSchedules([]);
         setAuditLogs([]);
         setNotification({
-          tone: "info",
-          message: "Session closed.",
+          tone: 'info',
+          message: 'Session closed.',
         });
+        setBootstrapping(false);
       });
       setBusy(false);
     }
@@ -195,8 +216,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   async function withMutation(
     task: () => Promise<void>,
     successMessage: string,
-    refresh = true,
+    refresh = true
   ) {
+    // Shared mutation wrapper keeps busy state, notification handling and optional refresh aligned.
     setBusy(true);
 
     try {
@@ -204,9 +226,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (refresh) {
         await refreshDashboard();
       }
-      setNotification({ tone: "success", message: successMessage });
+      setNotification({ tone: 'success', message: successMessage });
     } catch (error) {
-      setNotification({ tone: "error", message: getErrorMessage(error) });
+      setNotification({ tone: 'error', message: getErrorMessage(error) });
       throw error;
     } finally {
       setBusy(false);
@@ -225,63 +247,56 @@ export function AppProvider({ children }: { children: ReactNode }) {
     logout,
     refreshDashboard,
     createUser: async (payload) =>
-      withMutation(
-        async () => {
-          await requestData("/api/users", {
-            method: "POST",
-            body: JSON.stringify(payload),
-          });
-        },
-        "User created.",
-      ),
+      withMutation(async () => {
+        await requestData('/api/users', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+      }, 'User created.'),
     updateUser: async (id, payload) =>
-      withMutation(
-        async () => {
-          await requestData(`/api/users/${id}`, {
-            method: "PATCH",
-            body: JSON.stringify(payload),
-          });
-        },
-        "User updated.",
-      ),
+      withMutation(async () => {
+        await requestData(`/api/users/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+      }, 'User updated.'),
     deactivateUser: async (id) =>
       withMutation(
         async () => {
-          await requestData(`/api/users/${id}`, {
-            method: "DELETE",
-          });
+          const data = await requestData<{ user: UserRecord }>(
+            `/api/users/${id}`,
+            {
+              method: 'DELETE',
+            }
+          );
+
+          setUsers((current) =>
+            current.map((user) => (user.id === id ? data.user : user))
+          );
         },
-        "User deactivated.",
+        'User deactivated.',
+        false
       ),
     createSchedule: async (payload) =>
-      withMutation(
-        async () => {
-          await requestData("/api/schedules", {
-            method: "POST",
-            body: JSON.stringify(payload),
-          });
-        },
-        "Schedule created.",
-      ),
+      withMutation(async () => {
+        await requestData('/api/schedules', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+      }, 'Schedule created.'),
     updateSchedule: async (id, payload) =>
-      withMutation(
-        async () => {
-          await requestData(`/api/schedules/${id}`, {
-            method: "PATCH",
-            body: JSON.stringify(payload),
-          });
-        },
-        "Schedule updated.",
-      ),
+      withMutation(async () => {
+        await requestData(`/api/schedules/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+      }, 'Schedule updated.'),
     deleteSchedule: async (id) =>
-      withMutation(
-        async () => {
-          await requestData(`/api/schedules/${id}`, {
-            method: "DELETE",
-          });
-        },
-        "Schedule deleted.",
-      ),
+      withMutation(async () => {
+        await requestData(`/api/schedules/${id}`, {
+          method: 'DELETE',
+        });
+      }, 'Schedule deleted.'),
     clearNotification: () => setNotification(null),
   };
 
@@ -321,7 +336,7 @@ export function useAppContext() {
   const context = useContext(AppContext);
 
   if (!context) {
-    throw new Error("useAppContext must be used inside AppProvider.");
+    throw new Error('useAppContext must be used inside AppProvider.');
   }
 
   return context;

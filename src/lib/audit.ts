@@ -1,24 +1,21 @@
-import type { Prisma, PrismaClient } from "@prisma/client";
+import type {
+  Prisma,
+  PrismaClient,
+  AuditAction as PrismaAuditAction,
+} from '@prisma/client';
+import type { AuditAction } from '@/lib/constants';
 
+// Central helper for writing audit rows from any transactional context.
 export async function createAuditLog(
   db: PrismaClient | Prisma.TransactionClient,
   params: {
     actorId?: string | null;
-    action:
-      | "AUTH_LOGIN"
-      | "AUTH_LOGOUT"
-      | "AUTH_REFRESH"
-      | "USER_CREATED"
-      | "USER_UPDATED"
-      | "USER_DELETED"
-      | "SCHEDULE_CREATED"
-      | "SCHEDULE_UPDATED"
-      | "SCHEDULE_DELETED";
+    action: AuditAction;
     entityType: string;
     entityId: string;
     description: string;
     metadata?: Prisma.InputJsonValue;
-  },
+  }
 ) {
   return db.auditLog.create({
     data: {

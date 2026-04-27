@@ -1,5 +1,6 @@
 import type { HTMLAttributes, PropsWithChildren } from "react";
 
+// Generic content container used for lightweight panel-style sections.
 interface CardProps extends PropsWithChildren<HTMLAttributes<HTMLDivElement>> {
   title?: string;
   eyebrow?: string;

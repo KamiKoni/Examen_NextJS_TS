@@ -1,11 +1,17 @@
-import { NextRequest } from "next/server";
+import { NextRequest } from 'next/server';
 
-import { fail, ok } from "@/lib/api";
-import { canViewAudit, canViewUserDirectory } from "@/lib/permissions";
-import { prisma } from "@/lib/prisma";
-import { serializeAuditLog, serializeSchedule, serializeSessionUser, serializeUser } from "@/lib/serializers";
-import { requireSession } from "@/lib/session";
+import { fail, ok } from '@/lib/api';
+import { canViewAudit, canViewUserDirectory } from '@/lib/permissions';
+import { prisma } from '@/lib/prisma';
+import {
+  serializeAuditLog,
+  serializeSchedule,
+  serializeSessionUser,
+  serializeUser,
+} from '@/lib/serializers';
+import { requireSession } from '@/lib/session';
 
+// Aggregates the dashboard payload so the client can bootstrap from a single request.
 export async function GET(request: NextRequest) {
   try {
     const session = await requireSession(request);
@@ -13,8 +19,10 @@ export async function GET(request: NextRequest) {
     const [users, schedules, auditLogs] = await Promise.all([
       canViewUserDirectory(session.role)
         ? prisma.user.findMany({
-            where: session.role === "MANAGER" ? { role: "EMPLOYEE" } : undefined,
-            orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+            where:
+              session.role === 'MANAGER' ? { role: 'EMPLOYEE' } : undefined,
+            orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+            take: 50,
             select: {
               id: true,
               name: true,
@@ -27,7 +35,10 @@ export async function GET(request: NextRequest) {
           })
         : Promise.resolve([]),
       prisma.schedule.findMany({
-        where: session.role === "EMPLOYEE" ? { assignedUserId: session.id } : undefined,
+        where:
+          session.role === 'EMPLOYEE'
+            ? { assignedUserId: session.id }
+            : undefined,
         include: {
           assignedUser: {
             select: {
@@ -57,15 +68,16 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-        orderBy: [{ startAt: "asc" }, { createdAt: "desc" }],
+        orderBy: [{ startAt: 'asc' }, { createdAt: 'desc' }],
+        take: 50,
       }),
       canViewAudit(session.role)
         ? prisma.auditLog.findMany({
             where:
-              session.role === "MANAGER"
+              session.role === 'MANAGER'
                 ? {
                     entityType: {
-                      in: ["schedule", "session"],
+                      in: ['schedule', 'session'],
                     },
                   }
                 : undefined,
@@ -79,8 +91,8 @@ export async function GET(request: NextRequest) {
                 },
               },
             },
-            orderBy: { createdAt: "desc" },
-            take: session.role === "MANAGER" ? 25 : 50,
+            orderBy: { createdAt: 'desc' },
+            take: session.role === 'MANAGER' ? 25 : 50,
           })
         : Promise.resolve([]),
     ]);

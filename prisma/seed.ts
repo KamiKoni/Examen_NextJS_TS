@@ -2,6 +2,7 @@ import { PrismaClient, Role, ScheduleStatus, UserStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { addDays, set } from "date-fns";
 
+// Seed creates the three demo roles and a first approved schedule for local testing.
 const prisma = new PrismaClient();
 
 async function main() {

@@ -12,6 +12,7 @@ import type {
   UserRecord,
 } from "@/types/app";
 
+// Schedule context groups dashboard data and CRUD actions used across the panel.
 export interface ScheduleContextValue {
   users: UserRecord[];
   schedules: ScheduleRecord[];

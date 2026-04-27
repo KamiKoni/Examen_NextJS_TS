@@ -2,6 +2,7 @@
 
 import type { ButtonHTMLAttributes, PropsWithChildren } from "react";
 
+// Small button wrapper that maps project-level variants to shared utility classes.
 type ButtonVariant = "primary" | "secondary" | "ghost";
 
 interface ButtonProps extends PropsWithChildren<ButtonHTMLAttributes<HTMLButtonElement>> {

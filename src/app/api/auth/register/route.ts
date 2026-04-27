@@ -10,6 +10,7 @@ import { registerSchema } from "@/lib/schemas";
 import { serializeUser } from "@/lib/serializers";
 import { requireSession } from "@/lib/session";
 
+// Registration doubles as bootstrap: the very first user may self-register as ADMIN.
 export async function POST(request: NextRequest) {
   try {
     const payload = await parseBody(request, registerSchema);

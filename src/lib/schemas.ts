@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { ROLES, SCHEDULE_STATUSES, USER_STATUSES } from "@/lib/constants";
 
+// Zod schemas define the request contracts enforced by API routes.
 const roleSchema = z.enum(ROLES);
 const userStatusSchema = z.enum(USER_STATUSES);
 const statusSchema = z.enum(SCHEDULE_STATUSES);

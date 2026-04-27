@@ -2,6 +2,7 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 
 import { AppError } from "@/lib/errors";
 
+// Schedule rules are shared between create, update and document import flows.
 export function assertValidScheduleWindow(startAt: Date, endAt: Date) {
   if (Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime())) {
     throw new AppError(400, "INVALID_SCHEDULE", "Schedule dates are invalid.");
@@ -21,6 +22,7 @@ export async function assertNoScheduleConflict(
     ignoreScheduleId?: string;
   },
 ) {
+  // Overlap exists when another active schedule starts before the new end and ends after the new start.
   assertValidScheduleWindow(params.startAt, params.endAt);
 
   const conflict = await db.schedule.findFirst({

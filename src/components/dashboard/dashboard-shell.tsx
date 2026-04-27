@@ -1,24 +1,35 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
-import { format } from "date-fns";
+import { useRouter } from 'next/navigation';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { format } from 'date-fns';
 
-import { FeedbackBanner } from "@/components/ui/feedback-banner";
-import { useAppState } from "@/hooks/use-state";
+import { FeedbackBanner } from '@/components/ui/feedback-banner';
+import { useAppState } from '@/hooks/use-state';
 import {
   ROLES,
   SCHEDULE_STATUSES,
   USER_STATUSES,
+  ROLE_OPTIONS,
+  SCHEDULE_STATUS_OPTIONS,
   type AppRole,
   type ScheduleStatus,
   type UserStatus,
-} from "@/lib/constants";
+} from '@/lib/constants';
+import type { UserRecord } from '@/types/app';
+import { DocumentUploadPanel } from '@/components/dashboard/document-upload-panel';
 
-const tabs = ["Resumen", "Usuarios", "Horarios", "Auditoría"] as const;
+// Main authenticated workspace for summaries, users, schedules, documents and audit views.
+const tabs = [
+  'Resumen',
+  'Usuarios',
+  'Horarios',
+  'Documentos',
+  'Auditoría',
+] as const;
 type Tab = (typeof tabs)[number];
 
+// Helpers adapt persisted ISO timestamps to the browser-friendly datetime-local input format.
 function toDateTimeLocal(value: string) {
   const date = new Date(value);
   const offset = date.getTimezoneOffset();
@@ -31,7 +42,7 @@ function fromDateTimeLocal(value: string) {
 }
 
 function formatDateRange(startAt: string, endAt: string) {
-  return `${format(new Date(startAt), "dd MMM yyyy, HH:mm")} - ${format(new Date(endAt), "HH:mm")}`;
+  return `${format(new Date(startAt), 'dd MMM yyyy, HH:mm')} - ${format(new Date(endAt), 'HH:mm')}`;
 }
 
 export function DashboardShell() {
@@ -50,36 +61,70 @@ export function DashboardShell() {
     createSchedule,
     updateSchedule,
     deleteSchedule,
+    refreshDashboard,
   } = useAppState();
 
-  const [activeTab, setActiveTab] = useState<Tab>("Resumen");
+  const [activeTab, setActiveTab] = useState<Tab>('Resumen');
+
+  // Local form state keeps edits isolated until the user submits a mutation.
   const [userForm, setUserForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    role: "EMPLOYEE" as AppRole,
+    name: '',
+    email: '',
+    password: '',
+    role: 'EMPLOYEE' as AppRole,
   });
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [userDraft, setUserDraft] = useState({
-    name: "",
-    email: "",
-    password: "",
-    role: "EMPLOYEE" as AppRole,
-    status: "ACTIVE" as UserStatus,
+    name: '',
+    email: '',
+    password: '',
+    role: 'EMPLOYEE' as AppRole,
+    status: 'ACTIVE' as UserStatus,
   });
-  const [scheduleForm, setScheduleForm] = useState({
-    title: "",
-    description: "",
-    assignedUserId: "",
-    startAt: "",
-    endAt: "",
-    status: "PLANNED" as ScheduleStatus,
-  });
-  const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
 
+  const [scheduleForm, setScheduleForm] = useState({
+    title: '',
+    description: '',
+    assignedUserId: '',
+    startAt: '',
+    endAt: '',
+    status: 'PLANNED' as ScheduleStatus,
+  });
+  const [editingScheduleId, setEditingScheduleId] = useState<string | null>(
+    null
+  );
+
+  const canManageUsers = session?.role === 'ADMIN';
+  const canManageSchedules =
+    session?.role === 'ADMIN' || session?.role === 'MANAGER';
+  const canViewAudit = canManageSchedules;
+
+  // Tabs are filtered client-side to match the same role expectations enforced by the API.
+  const availableTabs = useMemo(
+    () =>
+      tabs.filter((tab) => {
+        if (tab === 'Usuarios') return canManageUsers;
+        if (tab === 'Auditoría') return canViewAudit;
+        if (tab === 'Documentos') return canManageSchedules;
+        return true;
+      }),
+    [canManageUsers, canManageSchedules, canViewAudit]
+  );
+
+  const upcomingSchedules = useMemo(() => schedules.slice(0, 5), [schedules]);
+  const activeUsersCount = useMemo(
+    () => users.filter((u) => u.status === 'ACTIVE').length,
+    [users]
+  );
+  const approvedSchedules = useMemo(
+    () => schedules.filter((s) => s.status === 'APPROVED').length,
+    [schedules]
+  );
+
+  // If the provider loses the session after bootstrap, return the user to login immediately.
   useEffect(() => {
     if (!bootstrapping && !session) {
-      router.replace("/auth/login");
+      router.replace('/auth/login');
     }
   }, [bootstrapping, router, session]);
 
@@ -87,8 +132,12 @@ export function DashboardShell() {
     return (
       <main className="flex min-h-screen items-center justify-center px-6">
         <div className="panel max-w-lg text-center">
-          <p className="text-sm uppercase tracking-[0.3em] text-stone-400">ClockHub</p>
-          <h1 className="mt-4 font-serif text-4xl text-stone-900">Cargando sesión</h1>
+          <p className="text-sm uppercase tracking-[0.3em] text-stone-400">
+            ClockHub
+          </p>
+          <h1 className="mt-4 font-serif text-4xl text-stone-900">
+            Cargando sesión
+          </h1>
           <p className="mt-4 text-stone-500">
             Validando cookies seguras y preparando el dashboard.
           </p>
@@ -97,47 +146,35 @@ export function DashboardShell() {
     );
   }
 
-  const canManageUsers = session.role === "ADMIN";
-  const canManageSchedules = session.role === "ADMIN" || session.role === "MANAGER";
-  const canViewAudit = canManageSchedules;
-  const availableTabs = tabs.filter((tab) => {
-    if (tab === "Usuarios") return canManageUsers;
-    if (tab === "Auditoría") return canViewAudit;
-    return true;
-  });
-
-  const upcomingSchedules = schedules.slice(0, 5);
-  const activeUsersCount = users.filter((user) => user.status === "ACTIVE").length;
-  const approvedSchedules = schedules.filter((schedule) => schedule.status === "APPROVED").length;
+  // Action handlers delegate mutations to AppProvider and keep local form state in sync.
+  async function handleLogout() {
+    try {
+      await logout();
+    } finally {
+      router.replace('/auth/login');
+    }
+  }
 
   function beginEditUser(userId: string) {
-    const selected = users.find((user) => user.id === userId);
-
-    if (!selected) {
-      return;
-    }
-
+    const selected = users.find((u) => u.id === userId);
+    if (!selected) return;
     setEditingUserId(userId);
     setUserDraft({
       name: selected.name,
       email: selected.email,
-      password: "",
+      password: '',
       role: selected.role,
       status: selected.status,
     });
   }
 
   function beginEditSchedule(scheduleId: string) {
-    const selected = schedules.find((schedule) => schedule.id === scheduleId);
-
-    if (!selected) {
-      return;
-    }
-
+    const selected = schedules.find((s) => s.id === scheduleId);
+    if (!selected) return;
     setEditingScheduleId(scheduleId);
     setScheduleForm({
       title: selected.title,
-      description: selected.description ?? "",
+      description: selected.description ?? '',
       assignedUserId: selected.assignedUserId,
       startAt: toDateTimeLocal(selected.startAt),
       endAt: toDateTimeLocal(selected.endAt),
@@ -145,514 +182,669 @@ export function DashboardShell() {
     });
   }
 
-  async function handleCreateUser(event: FormEvent<HTMLFormElement>) {
+  // User handlers
+  async function handleUserSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await createUser(userForm);
-    setUserForm({ name: "", email: "", password: "", role: "EMPLOYEE" });
+
+    try {
+      if (editingUserId) {
+        await updateUser(editingUserId, {
+          name: userForm.name,
+          email: userForm.email,
+          password: userForm.password || undefined,
+          role: userForm.role,
+        });
+        setEditingUserId(null);
+      } else {
+        await createUser({
+          name: userForm.name,
+          email: userForm.email,
+          password: userForm.password,
+          role: userForm.role,
+        });
+      }
+
+      setUserForm({
+        name: '',
+        email: '',
+        password: '',
+        role: 'EMPLOYEE',
+      });
+    } catch (error) {
+      // Error is handled by the context
+    }
   }
 
-  async function handleUpdateUser(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!editingUserId) {
-      return;
-    }
-
-    await updateUser(editingUserId, {
-      name: userDraft.name,
-      email: userDraft.email,
-      password: userDraft.password || undefined,
-      role: userDraft.role,
-      status: userDraft.status,
+  function startUserEdit(user: UserRecord) {
+    setEditingUserId(user.id);
+    setUserForm({
+      name: user.name,
+      email: user.email,
+      password: '',
+      role: user.role,
     });
+  }
+
+  function cancelUserEdit() {
     setEditingUserId(null);
-  }
-
-  async function handleCreateSchedule(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    await createSchedule({
-      ...scheduleForm,
-      startAt: fromDateTimeLocal(scheduleForm.startAt),
-      endAt: fromDateTimeLocal(scheduleForm.endAt),
-    });
-    setScheduleForm({
-      title: "",
-      description: "",
-      assignedUserId: users.find((user) => user.role === "EMPLOYEE" && user.status === "ACTIVE")?.id ?? "",
-      startAt: "",
-      endAt: "",
-      status: "PLANNED",
+    setUserForm({
+      name: '',
+      email: '',
+      password: '',
+      role: 'EMPLOYEE',
     });
   }
 
-  async function handleUpdateSchedule(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!editingScheduleId) {
-      return;
+  async function handleUserDeactivate(userId: string) {
+    if (confirm('¿Estás seguro de que quieres desactivar este usuario?')) {
+      try {
+        await deactivateUser(userId);
+      } catch (error) {
+        // Error is handled by the context
+      }
     }
-
-    await updateSchedule(editingScheduleId, {
-      ...scheduleForm,
-      startAt: fromDateTimeLocal(scheduleForm.startAt),
-      endAt: fromDateTimeLocal(scheduleForm.endAt),
-    });
-    setEditingScheduleId(null);
   }
 
-  async function handleLogout() {
-    await logout();
-    router.replace("/auth/login");
+  // Schedule handlers
+  async function handleScheduleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    try {
+      if (editingScheduleId) {
+        await updateSchedule(editingScheduleId, {
+          title: scheduleForm.title,
+          description: scheduleForm.description,
+          assignedUserId: scheduleForm.assignedUserId,
+          startAt: fromDateTimeLocal(scheduleForm.startAt),
+          endAt: fromDateTimeLocal(scheduleForm.endAt),
+          status: scheduleForm.status,
+        });
+        setEditingScheduleId(null);
+      } else {
+        await createSchedule({
+          title: scheduleForm.title,
+          description: scheduleForm.description,
+          assignedUserId: scheduleForm.assignedUserId,
+          startAt: fromDateTimeLocal(scheduleForm.startAt),
+          endAt: fromDateTimeLocal(scheduleForm.endAt),
+          status: scheduleForm.status,
+        });
+      }
+
+      setScheduleForm({
+        title: '',
+        description: '',
+        assignedUserId: '',
+        startAt: '',
+        endAt: '',
+        status: 'PLANNED',
+      });
+    } catch (error) {
+      // Error is handled by the context
+    }
+  }
+
+  function cancelScheduleEdit() {
+    setEditingScheduleId(null);
+    setScheduleForm({
+      title: '',
+      description: '',
+      assignedUserId: '',
+      startAt: '',
+      endAt: '',
+      status: 'PLANNED',
+    });
+  }
+
+  async function handleScheduleDelete(scheduleId: string) {
+    if (confirm('¿Estás seguro de que quieres cancelar este horario?')) {
+      try {
+        await deleteSchedule(scheduleId);
+      } catch (error) {
+        // Error is handled by the context
+      }
+    }
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-7xl px-5 py-6 lg:px-8">
-      <section className="rounded-[2rem] border border-white/40 bg-[radial-gradient(circle_at_top,#f5d7aa,transparent_42%),linear-gradient(160deg,#f8f2eb,#f1e8db_48%,#e7dbc8)] p-5 shadow-[0_24px_90px_rgba(54,33,17,0.08)] lg:p-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.35em] text-stone-500">
-              Dashboard operacional
-            </p>
-            <h1 className="mt-3 font-serif text-5xl leading-tight text-stone-950">
-              Controla usuarios, turnos y trazabilidad sin salir del panel.
-            </h1>
-            <p className="mt-4 text-base text-stone-600 lg:text-lg">
-              Sesión activa como <span className="font-semibold">{session.name}</span> con rol{" "}
-              <span className="font-semibold">{session.role}</span>.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <button className="secondary-button" disabled={busy} onClick={() => void handleLogout()} type="button">
-              Cerrar sesión
-            </button>
-            <Link className="primary-button" href="/auth/login">
-              Cambiar cuenta
-            </Link>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <h1 className="text-xl font-semibold text-gray-900">ClockHub Dashboard</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">
+                Welcome, {session.name}
+              </span>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                {session.role}
+              </span>
+              <button
+                onClick={handleLogout}
+                disabled={busy}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              >
+                {busy ? 'Logging out...' : 'Logout'}
+              </button>
+            </div>
           </div>
         </div>
+      </header>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <div className="metric-card">
-            <span className="metric-label">Usuarios activos</span>
-            <strong className="metric-value">{users.length > 0 ? activeUsersCount : session.active ? 1 : 0}</strong>
-          </div>
-          <div className="metric-card">
-            <span className="metric-label">Turnos aprobados</span>
-            <strong className="metric-value">{approvedSchedules}</strong>
-          </div>
-          <div className="metric-card">
-            <span className="metric-label">Próximo bloque</span>
-            <strong className="metric-value text-2xl">
-              {upcomingSchedules[0] ? format(new Date(upcomingSchedules[0].startAt), "dd MMM") : "Sin turnos"}
-            </strong>
-          </div>
-        </div>
-      </section>
-
-      <div className="mt-6">
-        <FeedbackBanner />
-      </div>
-
-      <nav className="mt-6 flex flex-wrap gap-3">
-        {availableTabs.map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => setActiveTab(tab)}
-            className={`cursor-pointer rounded-full px-4 py-2 text-sm font-semibold transition ${
-              activeTab === tab
-                ? "bg-stone-950 text-white"
-                : "bg-white text-stone-600 shadow-[0_10px_30px_rgba(45,28,14,0.08)]"
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </nav>
-
-      {activeTab === "Resumen" && (
-        <section className="mt-6 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="panel">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="section-kicker">Actividad inmediata</p>
-                <h2 className="section-title">Próximos horarios</h2>
-              </div>
-              <span className="pill">{schedules.length} registros</span>
-            </div>
-
-            <div className="mt-5 space-y-3">
-              {upcomingSchedules.length === 0 ? (
-                <p className="text-sm text-stone-500">Todavía no hay turnos cargados.</p>
-              ) : (
-                upcomingSchedules.map((schedule) => (
-                  <article key={schedule.id} className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <h3 className="font-semibold text-stone-900">{schedule.title}</h3>
-                        <p className="text-sm text-stone-500">
-                          {schedule.assignedUser.name} · {formatDateRange(schedule.startAt, schedule.endAt)}
-                        </p>
-                      </div>
-                      <span className="pill">{schedule.status}</span>
-                    </div>
-                  </article>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="panel">
-            <p className="section-kicker">Accesos y gobierno</p>
-            <h2 className="section-title">Reglas activas</h2>
-            <div className="mt-5 grid gap-3">
-              {[
-                "Access token corto y refresh token rotado por cookies HttpOnly.",
-                "Managers gestionan empleados; admins gestionan toda la organización.",
-                "Los solapamientos de horario se bloquean antes de persistir.",
-                "Cada alta, baja o modificación crítica deja rastro en auditoría.",
-              ].map((item) => (
-                <div key={item} className="rounded-2xl border border-stone-200 p-4 text-sm text-stone-600">
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {activeTab === "Usuarios" && canManageUsers && (
-        <section className="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-          <form className="panel space-y-4" onSubmit={handleCreateUser}>
-            <div>
-              <p className="section-kicker">Nuevo usuario</p>
-              <h2 className="section-title">Alta controlada</h2>
-            </div>
-
-            <input
-              className="field"
-              placeholder="Nombre completo"
-              value={userForm.name}
-              onChange={(event) => setUserForm((current) => ({ ...current, name: event.target.value }))}
-            />
-            <input
-              className="field"
-              placeholder="correo@empresa.com"
-              type="email"
-              value={userForm.email}
-              onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))}
-            />
-            <input
-              className="field"
-              placeholder="Contraseña temporal"
-              type="password"
-              value={userForm.password}
-              onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))}
-            />
-            <select
-              className="field"
-              value={userForm.role}
-              onChange={(event) => setUserForm((current) => ({ ...current, role: event.target.value as AppRole }))}
-            >
-              {ROLES.filter((role) => session.role === "ADMIN" || role === "EMPLOYEE").map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))}
-            </select>
-            <button className="primary-button w-full" disabled={busy} type="submit">
-              Crear usuario
-            </button>
-          </form>
-
-          <div className="panel">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="section-kicker">Directorio</p>
-                <h2 className="section-title">Usuarios registrados</h2>
-              </div>
-              <span className="pill">{users.length}</span>
-            </div>
-
-            <div className="mt-5 grid gap-3">
-              {users.map((user) => (
+      <div className="flex">
+        {/* Sidebar */}
+        <nav className="w-64 bg-white shadow-sm border-r border-gray-200">
+          <div className="p-4">
+            <nav className="space-y-1">
+              {availableTabs.map((tab) => (
                 <button
-                  key={user.id}
-                  type="button"
-                  onClick={() => beginEditUser(user.id)}
-                  className={`cursor-pointer rounded-2xl border p-4 text-left transition ${
-                    editingUserId === user.id
-                      ? "border-stone-950 bg-stone-950 text-white"
-                      : "border-stone-200 bg-stone-50 hover:border-stone-400"
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium ${
+                    activeTab === tab
+                      ? 'bg-blue-100 text-blue-900'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <h3 className="font-semibold">{user.name}</h3>
-                      <p className={`text-sm ${editingUserId === user.id ? "text-white/70" : "text-stone-500"}`}>
-                        {user.email}
-                      </p>
-                    </div>
-                    <span className="pill">{user.role}</span>
-                  </div>
+                  {tab}
                 </button>
               ))}
-            </div>
-
-            {editingUserId && (
-              <form className="mt-6 grid gap-3 rounded-3xl border border-stone-200 p-4" onSubmit={handleUpdateUser}>
-                <h3 className="font-semibold text-stone-900">Editar usuario</h3>
-                <input
-                  className="field"
-                  value={userDraft.name}
-                  onChange={(event) => setUserDraft((current) => ({ ...current, name: event.target.value }))}
-                />
-                <input
-                  className="field"
-                  type="email"
-                  value={userDraft.email}
-                  onChange={(event) => setUserDraft((current) => ({ ...current, email: event.target.value }))}
-                />
-                <input
-                  className="field"
-                  type="password"
-                  placeholder="Nueva contraseña opcional"
-                  value={userDraft.password}
-                  onChange={(event) => setUserDraft((current) => ({ ...current, password: event.target.value }))}
-                />
-                <select
-                  className="field"
-                  value={userDraft.role}
-                  onChange={(event) => setUserDraft((current) => ({ ...current, role: event.target.value as AppRole }))}
-                >
-                  {ROLES.filter((role) => session.role === "ADMIN" || role === "EMPLOYEE").map((role) => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="field"
-                  value={userDraft.status}
-                  onChange={(event) => setUserDraft((current) => ({ ...current, status: event.target.value as UserStatus }))}
-                >
-                  {USER_STATUSES.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
-
-                <div className="flex flex-wrap gap-3">
-                  <button className="primary-button" disabled={busy} type="submit">
-                    Guardar cambios
-                  </button>
-                  <button
-                    className="secondary-button"
-                    type="button"
-                    onClick={() => setEditingUserId(null)}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    className="secondary-button"
-                    disabled={busy}
-                    type="button"
-                    onClick={() => void deactivateUser(editingUserId)}
-                  >
-                    Desactivar
-                  </button>
-                </div>
-              </form>
-            )}
+            </nav>
           </div>
-        </section>
-      )}
+        </nav>
 
-      {activeTab === "Horarios" && (
-        <section className="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-          {canManageSchedules && (
-            <form
-              className="panel space-y-4"
-              onSubmit={editingScheduleId ? handleUpdateSchedule : handleCreateSchedule}
-            >
+        {/* Main Content */}
+        <main className="flex-1 p-8">
+          {activeTab === 'Resumen' && (
+            <div className="space-y-6">
               <div>
-                <p className="section-kicker">{editingScheduleId ? "Editar turno" : "Nuevo turno"}</p>
-                <h2 className="section-title">
-                  {editingScheduleId ? "Ajuste de horario" : "Asignación de horario"}
-                </h2>
+                <h2 className="text-2xl font-bold text-gray-900">Dashboard Overview</h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  Manage schedules, users, and documents
+                </p>
               </div>
 
-              <input
-                className="field"
-                placeholder="Nombre del turno"
-                value={scheduleForm.title}
-                onChange={(event) => setScheduleForm((current) => ({ ...current, title: event.target.value }))}
-              />
-              <textarea
-                className="field min-h-28 resize-y"
-                placeholder="Detalle operativo"
-                value={scheduleForm.description}
-                onChange={(event) => setScheduleForm((current) => ({ ...current, description: event.target.value }))}
-              />
-              <select
-                className="field"
-                value={scheduleForm.assignedUserId}
-                onChange={(event) =>
-                  setScheduleForm((current) => ({ ...current, assignedUserId: event.target.value }))
-                }
-              >
-                <option value="">Selecciona un usuario</option>
-                {users
-                  .filter((user) => user.status === "ACTIVE" && (session.role === "ADMIN" || user.role === "EMPLOYEE"))
-                  .map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.name} · {user.role}
-                    </option>
-                  ))}
-              </select>
-              <input
-                className="field"
-                type="datetime-local"
-                value={scheduleForm.startAt}
-                onChange={(event) => setScheduleForm((current) => ({ ...current, startAt: event.target.value }))}
-              />
-              <input
-                className="field"
-                type="datetime-local"
-                value={scheduleForm.endAt}
-                onChange={(event) => setScheduleForm((current) => ({ ...current, endAt: event.target.value }))}
-              />
-              <select
-                className="field"
-                value={scheduleForm.status}
-                onChange={(event) =>
-                  setScheduleForm((current) => ({ ...current, status: event.target.value as ScheduleStatus }))
-                }
-              >
-                {SCHEDULE_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
+              {/* Metrics */}
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="bg-white overflow-hidden shadow rounded-lg">
+                  <div className="p-5">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                          <span className="text-white text-sm font-medium">U</span>
+                        </div>
+                      </div>
+                      <div className="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt className="text-sm font-medium text-gray-500 truncate">
+                            Active Users
+                          </dt>
+                          <dd className="text-lg font-medium text-gray-900">
+                            {activeUsersCount}
+                          </dd>
+                        </dl>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-              <div className="flex flex-wrap gap-3">
-                <button className="primary-button" disabled={busy} type="submit">
-                  {editingScheduleId ? "Guardar turno" : "Crear turno"}
-                </button>
-                {editingScheduleId && (
-                  <button
-                    className="secondary-button"
-                    type="button"
-                    onClick={() => {
-                      setEditingScheduleId(null);
-                      setScheduleForm({
-                        title: "",
-                        description: "",
-                        assignedUserId: "",
-                        startAt: "",
-                        endAt: "",
-                        status: "PLANNED",
-                      });
-                    }}
-                  >
-                    Cancelar edición
-                  </button>
-                )}
+                <div className="bg-white overflow-hidden shadow rounded-lg">
+                  <div className="p-5">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
+                          <span className="text-white text-sm font-medium">S</span>
+                        </div>
+                      </div>
+                      <div className="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt className="text-sm font-medium text-gray-500 truncate">
+                            Approved Schedules
+                          </dt>
+                          <dd className="text-lg font-medium text-gray-900">
+                            {approvedSchedules}
+                          </dd>
+                        </dl>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white overflow-hidden shadow rounded-lg">
+                  <div className="p-5">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
+                          <span className="text-white text-sm font-medium">P</span>
+                        </div>
+                      </div>
+                      <div className="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt className="text-sm font-medium text-gray-500 truncate">
+                            Pending Schedules
+                          </dt>
+                          <dd className="text-lg font-medium text-gray-900">
+                            {schedules.length - approvedSchedules}
+                          </dd>
+                        </dl>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </form>
+
+              {/* Upcoming Schedules */}
+              <div className="bg-white shadow rounded-lg">
+                <div className="px-4 py-5 sm:p-6">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    Upcoming Schedules
+                  </h3>
+                  <div className="mt-5">
+                    <div className="space-y-3">
+                      {upcomingSchedules.map((schedule) => (
+                        <div key={schedule.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">{schedule.title}</p>
+                            <p className="text-sm text-gray-500">{schedule.assignedUser.name}</p>
+                            <p className="text-xs text-gray-400">
+                              {formatDateRange(schedule.startAt, schedule.endAt)}
+                            </p>
+                          </div>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            schedule.status === 'APPROVED'
+                              ? 'bg-green-100 text-green-800'
+                              : schedule.status === 'CANCELLED'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {schedule.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
-          <div className="panel">
-            <div className="flex items-center justify-between">
+          {activeTab === 'Usuarios' && canManageUsers && (
+            <div className="space-y-6">
               <div>
-                <p className="section-kicker">Vista operativa</p>
-                <h2 className="section-title">Horarios</h2>
+                <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  Create and manage user accounts
+                </p>
               </div>
-              <span className="pill">{schedules.length}</span>
-            </div>
 
-            <div className="mt-5 grid gap-4">
-              {schedules.length === 0 ? (
-                <p className="text-sm text-stone-500">No hay turnos para mostrar.</p>
-              ) : (
-                schedules.map((schedule) => (
-                  <article key={schedule.id} className="rounded-3xl border border-stone-200 bg-stone-50 p-4">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="font-semibold text-stone-900">{schedule.title}</h3>
-                          <span className="pill">{schedule.status}</span>
-                        </div>
-                        <p className="text-sm text-stone-600">
-                          {schedule.assignedUser.name} · {formatDateRange(schedule.startAt, schedule.endAt)}
-                        </p>
-                        {schedule.description && (
-                          <p className="text-sm text-stone-500">{schedule.description}</p>
-                        )}
+              {/* Create/Edit User Form */}
+              <div className="bg-white shadow rounded-lg">
+                <div className="px-4 py-5 sm:p-6">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                    {editingUserId ? 'Edit User' : 'Create New User'}
+                  </h3>
+                  <form onSubmit={handleUserSubmit} className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <label htmlFor="user-name" className="block text-sm font-medium text-gray-700">
+                          Name
+                        </label>
+                        <input
+                          id="user-name"
+                          type="text"
+                          value={userForm.name}
+                          onChange={(e) => setUserForm(prev => ({ ...prev, name: e.target.value }))}
+                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                          required
+                        />
                       </div>
-
-                      {canManageSchedules && (
-                        <div className="flex flex-wrap gap-3">
-                          <button
-                            className="secondary-button"
-                            type="button"
-                            onClick={() => beginEditSchedule(schedule.id)}
-                          >
-                            Editar
-                          </button>
-                          <button
-                            className="secondary-button"
-                            disabled={busy}
-                            type="button"
-                            onClick={() => void deleteSchedule(schedule.id)}
-                          >
-                            Eliminar
-                          </button>
-                        </div>
-                      )}
+                      <div>
+                        <label htmlFor="user-email" className="block text-sm font-medium text-gray-700">
+                          Email
+                        </label>
+                        <input
+                          id="user-email"
+                          type="email"
+                          value={userForm.email}
+                          onChange={(e) => setUserForm(prev => ({ ...prev, email: e.target.value }))}
+                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="user-password" className="block text-sm font-medium text-gray-700">
+                          Password
+                        </label>
+                        <input
+                          id="user-password"
+                          type="password"
+                          value={userForm.password}
+                          onChange={(e) => setUserForm(prev => ({ ...prev, password: e.target.value }))}
+                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                          required={!editingUserId}
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="user-role" className="block text-sm font-medium text-gray-700">
+                          Role
+                        </label>
+                        <select
+                          id="user-role"
+                          value={userForm.role}
+                          onChange={(e) => setUserForm(prev => ({ ...prev, role: e.target.value as AppRole }))}
+                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        >
+                          {ROLE_OPTIONS.map((role) => (
+                            <option key={role.value} value={role.value}>
+                              {role.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                  </article>
-                ))
-              )}
-            </div>
-          </div>
-        </section>
-      )}
+                    <div className="flex justify-end space-x-3">
+                      <button
+                        type="button"
+                        onClick={cancelUserEdit}
+                        className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={busy}
+                        className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                      >
+                        {editingUserId ? 'Update' : 'Create'} User
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
 
-      {activeTab === "Auditoría" && canViewAudit && (
-        <section className="mt-6 panel">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="section-kicker">Trazabilidad</p>
-              <h2 className="section-title">Registro de auditoría</h2>
-            </div>
-            <span className="pill">{auditLogs.length}</span>
-          </div>
-
-          <div className="mt-5 space-y-3">
-            {auditLogs.map((log) => (
-              <article key={log.id} className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-                <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                  <div>
-                    <p className="font-semibold text-stone-900">{log.action}</p>
-                    <p className="text-sm text-stone-600">{log.description}</p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.2em] text-stone-400">
-                      {log.entityType} · {log.entityId}
-                    </p>
-                  </div>
-                  <div className="text-sm text-stone-500">
-                    <p>{log.actor?.name ?? "Sistema"}</p>
-                    <p>{format(new Date(log.createdAt), "dd MMM yyyy, HH:mm")}</p>
+              {/* Users List */}
+              <div className="bg-white shadow rounded-lg">
+                <div className="px-4 py-5 sm:p-6">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                    Registered Users
+                  </h3>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {users.map((user) => (
+                      <div key={user.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                          <p className="text-sm text-gray-500">{user.email}</p>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              {ROLE_OPTIONS.find((r) => r.value === user.role)?.label}
+                            </span>
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              user.status === 'ACTIVE'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {user.status}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => startUserEdit(user)}
+                            className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            disabled={busy}
+                          >
+                            Edit
+                          </button>
+                          {user.id !== session?.id && (
+                            <button
+                              onClick={() => handleUserDeactivate(user.id)}
+                              className="inline-flex items-center px-3 py-1 border border-red-300 shadow-sm text-sm leading-4 font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                              disabled={busy}
+                            >
+                              Deactivate
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-    </main>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'Horarios' && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Schedule Management</h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  Create and manage work schedules
+                </p>
+              </div>
+
+              {/* Create/Edit Schedule Form */}
+              <div className="bg-white shadow rounded-lg">
+                <div className="px-4 py-5 sm:p-6">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                    {editingScheduleId ? 'Edit Schedule' : 'Create New Schedule'}
+                  </h3>
+                  <form onSubmit={handleScheduleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className="sm:col-span-2">
+                        <label htmlFor="schedule-title" className="block text-sm font-medium text-gray-700">
+                          Title
+                        </label>
+                        <input
+                          id="schedule-title"
+                          type="text"
+                          value={scheduleForm.title}
+                          onChange={(e) => setScheduleForm(prev => ({ ...prev, title: e.target.value }))}
+                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                          required
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label htmlFor="schedule-description" className="block text-sm font-medium text-gray-700">
+                          Description
+                        </label>
+                        <textarea
+                          id="schedule-description"
+                          value={scheduleForm.description}
+                          onChange={(e) => setScheduleForm(prev => ({ ...prev, description: e.target.value }))}
+                          rows={3}
+                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="schedule-user" className="block text-sm font-medium text-gray-700">
+                          Assigned User
+                        </label>
+                        <select
+                          id="schedule-user"
+                          value={scheduleForm.assignedUserId}
+                          onChange={(e) => setScheduleForm(prev => ({ ...prev, assignedUserId: e.target.value }))}
+                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                          required
+                        >
+                          <option value="">Select a user</option>
+                          {users.map((user) => (
+                            <option key={user.id} value={user.id}>
+                              {user.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor="schedule-status" className="block text-sm font-medium text-gray-700">
+                          Status
+                        </label>
+                        <select
+                          id="schedule-status"
+                          value={scheduleForm.status}
+                          onChange={(e) => setScheduleForm(prev => ({ ...prev, status: e.target.value as ScheduleStatus }))}
+                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        >
+                          {SCHEDULE_STATUS_OPTIONS.map((status) => (
+                            <option key={status.value} value={status.value}>
+                              {status.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor="schedule-start" className="block text-sm font-medium text-gray-700">
+                          Start Date & Time
+                        </label>
+                        <input
+                          id="schedule-start"
+                          type="datetime-local"
+                          value={scheduleForm.startAt}
+                          onChange={(e) => setScheduleForm(prev => ({ ...prev, startAt: e.target.value }))}
+                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="schedule-end" className="block text-sm font-medium text-gray-700">
+                          End Date & Time
+                        </label>
+                        <input
+                          id="schedule-end"
+                          type="datetime-local"
+                          value={scheduleForm.endAt}
+                          onChange={(e) => setScheduleForm(prev => ({ ...prev, endAt: e.target.value }))}
+                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end space-x-3">
+                      <button
+                        type="button"
+                        onClick={cancelScheduleEdit}
+                        className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={busy}
+                        className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                      >
+                        {editingScheduleId ? 'Update' : 'Create'} Schedule
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              {/* Schedules List */}
+              <div className="bg-white shadow rounded-lg">
+                <div className="px-4 py-5 sm:p-6">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                    Scheduled Shifts
+                  </h3>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {schedules.map((schedule) => (
+                      <div key={schedule.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">{schedule.title}</p>
+                          <p className="text-sm text-gray-500">{schedule.assignedUser.name}</p>
+                          <p className="text-xs text-gray-400">
+                            {formatDateRange(schedule.startAt, schedule.endAt)}
+                          </p>
+                          {schedule.description && (
+                            <p className="text-xs text-gray-500 mt-1">{schedule.description}</p>
+                          )}
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-2 ${
+                            schedule.status === 'APPROVED'
+                              ? 'bg-green-100 text-green-800'
+                              : schedule.status === 'CANCELLED'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {schedule.status}
+                          </span>
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => beginEditSchedule(schedule.id)}
+                            className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            disabled={busy}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleScheduleDelete(schedule.id)}
+                            className="inline-flex items-center px-3 py-1 border border-red-300 shadow-sm text-sm leading-4 font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                            disabled={busy}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'Documentos' && canManageSchedules && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Document Management</h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  Upload and analyze documents
+                </p>
+              </div>
+
+              <DocumentUploadPanel onUpload={refreshDashboard} disabled={busy} />
+            </div>
+          )}
+
+          {activeTab === 'Auditoría' && canViewAudit && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Audit Log</h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  View system activity and changes
+                </p>
+              </div>
+
+              <div className="bg-white shadow rounded-lg">
+                <div className="px-4 py-5 sm:p-6">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                    Recent Activity
+                  </h3>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {auditLogs.map((log) => (
+                      <div key={log.id} className="flex items-start space-x-3 p-4 border border-gray-200 rounded-lg">
+                        <div className="flex-shrink-0">
+                          <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center">
+                            <span className="text-white text-xs font-medium">
+                              {log.actor?.name?.charAt(0)?.toUpperCase() || '?'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-900">{log.description}</p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(log.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
   );
 }

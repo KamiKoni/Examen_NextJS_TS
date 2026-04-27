@@ -1,6 +1,7 @@
 import type { AppRole } from "@/lib/constants";
 import { AppError } from "@/lib/errors";
 
+// Permission helpers encode role rules in one place for routes and UI decisions.
 export function canManageUsers(role: AppRole) {
   return role === "ADMIN";
 }

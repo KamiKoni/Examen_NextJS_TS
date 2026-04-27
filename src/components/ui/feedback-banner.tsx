@@ -2,6 +2,7 @@
 
 import { useAppState } from "@/hooks/use-state";
 
+// Global feedback surface for success, error and informational notifications.
 export function FeedbackBanner() {
   const { notification, clearNotification } = useAppState();
 

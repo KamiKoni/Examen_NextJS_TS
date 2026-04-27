@@ -4,6 +4,7 @@ import type { PropsWithChildren } from "react";
 
 import { Button } from "@/components/ui/button";
 
+// Minimal modal wrapper for confirmation and focused task flows.
 interface ModalProps extends PropsWithChildren {
   open: boolean;
   title: string;

@@ -1,3 +1,4 @@
+// AppError standardizes HTTP status codes and machine-readable error codes.
 export class AppError extends Error {
   constructor(
     public readonly status: number,

@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from "react";
 
+// Semantic badge component for statuses and compact labels.
 type BadgeTone = "neutral" | "success" | "warning" | "danger";
 
 interface BadgeProps extends PropsWithChildren {

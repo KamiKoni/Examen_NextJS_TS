@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+// Environment parsing is cached so routes do not re-validate process.env on every call.
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   JWT_ACCESS_SECRET: z.string().min(24),

@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 const accessCookie = "clockhub_access";
 const refreshCookie = "clockhub_refresh";
 
+// Redirect unauthenticated users away from dashboard and keep signed-in users out of login.
 export function proxy(request: NextRequest) {
   const hasSession =
     request.cookies.has(accessCookie) || request.cookies.has(refreshCookie);

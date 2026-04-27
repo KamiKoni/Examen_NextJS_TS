@@ -4,6 +4,7 @@ import { createContext, useContext } from "react";
 
 import type { NotificationState, SessionUser } from "@/types/app";
 
+// Auth context exposes session status and authentication actions to client components.
 export interface AuthContextValue {
   session: SessionUser | null;
   bootstrapping: boolean;
