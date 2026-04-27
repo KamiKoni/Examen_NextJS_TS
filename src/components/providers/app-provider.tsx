@@ -283,12 +283,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
           body: JSON.stringify(payload),
         });
       }, "User created."),
-      hardDeleteUser: async (id: string) =>
-        withMutation(async () => {
+    hardDeleteUser: async (id: string) =>
+      withMutation(
+        async () => {
           await requestData(`/api/users/${id}?hard=true`, {
-            method: 'DELETE',
+            method: "DELETE",
           });
-        }, 'User permanently deleted.'),
+
+          // Optimistically remove the user from local state for immediate UI feedback.
+          setUsers((current) => current.filter((u) => u.id !== id));
+        },
+        "User permanently deleted.",
+        false,
+      ),
     updateUser: async (id, payload) =>
       withMutation(async () => {
         await requestData(`/api/users/${id}`, {
@@ -313,12 +320,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
         "User deactivated.",
         false,
       ),
-      hardDeleteSchedule: async (id: string) =>
-        withMutation(async () => {
+    hardDeleteSchedule: async (id: string) =>
+      withMutation(
+        async () => {
           await requestData(`/api/schedules/${id}?hard=true`, {
-            method: 'DELETE',
+            method: "DELETE",
           });
-        }, 'Schedule permanently deleted.'),
+
+          // Optimistically remove the schedule from local state so the UI updates immediately.
+          setSchedules((current) => current.filter((s) => s.id !== id));
+        },
+        "Schedule permanently deleted.",
+        false,
+      ),
     createSchedule: async (payload) =>
       withMutation(async () => {
         await requestData("/api/schedules", {
