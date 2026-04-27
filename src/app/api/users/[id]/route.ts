@@ -4,7 +4,11 @@ import { NextRequest } from "next/server";
 import { fail, ok, parseBody } from "@/lib/api";
 import { createAuditLog } from "@/lib/audit";
 import { AppError } from "@/lib/errors";
-import { assertCanManageRole, assertCanViewUser, canManageUsers } from "@/lib/permissions";
+import {
+  assertCanManageRole,
+  assertCanViewUser,
+  canManageUsers,
+} from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { updateUserSchema } from "@/lib/schemas";
 import { serializeUser } from "@/lib/serializers";
@@ -87,7 +91,11 @@ async function updateUser(request: NextRequest, context: RouteContext) {
       assertCanManageRole(session.role, target.role, payload.role);
     } else {
       if (payload.role || payload.status) {
-        throw new AppError(403, "FORBIDDEN", "You cannot change your own role or status.");
+        throw new AppError(
+          403,
+          "FORBIDDEN",
+          "You cannot change your own role or status.",
+        );
       }
     }
 
@@ -109,7 +117,9 @@ async function updateUser(request: NextRequest, context: RouteContext) {
         email: payload.email?.toLowerCase(),
         role: payload.role,
         status: payload.status,
-        passwordHash: payload.password ? await bcrypt.hash(payload.password, 12) : undefined,
+        passwordHash: payload.password
+          ? await bcrypt.hash(payload.password, 12)
+          : undefined,
       },
       select: {
         id: true,
@@ -142,14 +152,18 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     const session = await requireSession(request);
     const { id } = await context.params;
     const url = new URL(request.url);
-    const hard = url.searchParams.get('hard') === 'true';
+    const hard = url.searchParams.get("hard") === "true";
 
     if (!canManageUsers(session.role)) {
       throw new AppError(403, "FORBIDDEN", "You cannot deactivate users.");
     }
 
     if (session.id === id) {
-      throw new AppError(400, "INVALID_OPERATION", "You cannot deactivate your own account.");
+      throw new AppError(
+        400,
+        "INVALID_OPERATION",
+        "You cannot deactivate your own account.",
+      );
     }
 
     const target = await prisma.user.findUnique({
@@ -168,19 +182,23 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     assertCanManageRole(session.role, target.role);
 
     if (hard) {
-      if (session.role !== 'ADMIN') {
-        throw new AppError(403, 'FORBIDDEN', 'Only admins can permanently delete users.');
+      if (session.role !== "ADMIN") {
+        throw new AppError(
+          403,
+          "FORBIDDEN",
+          "Only admins can permanently delete users.",
+        );
       }
 
       const deleted = await prisma.user.delete({ where: { id } });
 
       await createAuditLog(prisma, {
         actorId: session.id,
-        action: "USER_HARD_DELETED",
+        action: "USER_DELETED",
         entityType: "user",
         entityId: deleted.id,
         description: `${session.email} permanently deleted ${deleted.email}.`,
-        metadata: null,
+        metadata: { hard: true },
       });
 
       return ok({ user: serializeUser(deleted) });
