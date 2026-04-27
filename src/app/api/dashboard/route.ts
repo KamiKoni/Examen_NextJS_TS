@@ -1,7 +1,11 @@
 import { NextRequest } from 'next/server';
 
 import { fail, ok } from '@/lib/api';
-import { canViewAudit, canViewUserDirectory } from '@/lib/permissions';
+import {
+  canViewAudit,
+  canViewUserDirectory,
+  getAuditVisibilityFilter,
+} from '@/lib/permissions';
 import { prisma } from '@/lib/prisma';
 import {
   serializeAuditLog,
@@ -73,14 +77,7 @@ export async function GET(request: NextRequest) {
       }),
       canViewAudit(session.role)
         ? prisma.auditLog.findMany({
-            where:
-              session.role === 'MANAGER'
-                ? {
-                    entityType: {
-                      in: ['schedule', 'session'],
-                    },
-                  }
-                : undefined,
+            where: getAuditVisibilityFilter(session.role),
             include: {
               actor: {
                 select: {

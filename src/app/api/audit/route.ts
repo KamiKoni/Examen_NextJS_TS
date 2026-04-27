@@ -4,7 +4,7 @@ import { fail, ok } from "@/lib/api";
 import { AppError } from "@/lib/errors";
 import { requireRole } from "@/lib/middleware/auth";
 import { getPaginationParams, buildPaginationMeta } from "@/lib/pagination";
-import { canViewAudit } from "@/lib/permissions";
+import { canViewAudit, getAuditVisibilityFilter } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { serializeAuditLog } from "@/lib/serializers";
 import { requireSession } from "@/lib/session";
@@ -20,15 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     requireRole(session.role, ["ADMIN", "MANAGER"]);
-
-    const where =
-      session.role === "MANAGER"
-        ? {
-            entityType: {
-              in: ["schedule", "session"],
-            },
-          }
-        : undefined;
+    const where = getAuditVisibilityFilter(session.role);
 
     const [total, auditLogs] = await Promise.all([
       prisma.auditLog.count({ where }),

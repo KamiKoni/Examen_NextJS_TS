@@ -1,3 +1,5 @@
+import type { Prisma } from "@prisma/client";
+
 import type { AppRole } from "@/lib/constants";
 import { AppError } from "@/lib/errors";
 
@@ -16,6 +18,18 @@ export function canManageSchedules(role: AppRole) {
 
 export function canViewAudit(role: AppRole) {
   return role === "ADMIN" || role === "MANAGER";
+}
+
+export function getAuditVisibilityFilter(role: AppRole): Prisma.AuditLogWhereInput | undefined {
+  if (role === "MANAGER") {
+    return {
+      entityType: {
+        in: ["schedule", "session"],
+      },
+    };
+  }
+
+  return undefined;
 }
 
 export function assertCanViewUser(actorRole: AppRole, actorId: string, targetUserId: string) {
