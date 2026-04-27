@@ -1,3 +1,4 @@
+import type { AuditAction, Prisma } from "@prisma/client";
 import { NextRequest } from "next/server";
 
 import { fail, ok } from "@/lib/api";
@@ -10,7 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { serializeAuditLog } from "@/lib/serializers";
 import { requireSession } from "@/lib/session";
 
-function getAuditFilters(request: NextRequest) {
+function getAuditFilters(request: NextRequest): Prisma.AuditLogWhereInput {
   const { searchParams } = new URL(request.url);
   const entityType = searchParams.get("entityType");
   const actorId = searchParams.get("actorId");
@@ -23,7 +24,7 @@ function getAuditFilters(request: NextRequest) {
   return {
     ...(entityType ? { entityType } : {}),
     ...(actorId ? { actorId } : {}),
-    ...(action ? { action } : {}),
+    ...(action ? { action: action as AuditAction } : {}),
   };
 }
 
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
     }
 
     requireRole(session.role, ["ADMIN", "MANAGER"]);
-    const where = {
+    const where: Prisma.AuditLogWhereInput = {
       ...getAuditFilters(request),
       ...getAuditVisibilityFilter(session.role),
     };
