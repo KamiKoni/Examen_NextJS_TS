@@ -94,7 +94,7 @@ npm run dev
 
 ## PostgreSQL con Docker
 
-Si no tienes PostgreSQL local, puedes levantarlo con Docker usando la configuración incluida en [docker-compose.yml](/c:/Users/TUF/Pictures/clockhub/docker-compose.yml:1).
+Si no tienes PostgreSQL local, puedes levantarlo con Docker usando el archivo `docker-compose.yml` incluido en la raíz del proyecto.
 
 1. Inicia la base:
 
@@ -167,6 +167,7 @@ docker compose down -v
 
 - `GET /api/audit`
 - `GET /api/dashboard`
+- `GET /api/health`
 
 ## Reglas de negocio destacadas
 
@@ -207,6 +208,21 @@ curl "http://localhost:3000/api/schedules?limit=10&page=2" \
 ```
 
 La respuesta incluye `meta.pagination` con `total`, `page`, `offset`, `limit` y `totalPages`.
+
+## Filtros de auditoría
+
+`GET /api/audit` acepta además:
+
+- `action`
+- `actorId`
+- `entityType`
+
+Ejemplo:
+
+```bash
+curl "http://localhost:3000/api/audit?action=AUTH_LOGIN&entityType=session" \
+  -H "Authorization: Bearer <access_token>"
+```
 
 ## Comandos útiles
 
