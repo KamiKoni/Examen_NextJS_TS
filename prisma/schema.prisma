@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum ScheduleStatus {
+  PLANNED
+  APPROVED
+  CANCELLED
+}
+
+enum AuditAction {
+  AUTH_LOGIN
+  AUTH_LOGOUT
+  AUTH_REFRESH
+  USER_CREATED
+  USER_UPDATED
+  USER_DELETED
+  SCHEDULE_CREATED
+  SCHEDULE_UPDATED
+  SCHEDULE_DELETED
+}
+
+model User {
+  id               String         @id @default(cuid())
+  email            String         @unique
+  name             String
+  passwordHash     String
+  role             Role
+  status           UserStatus     @default(ACTIVE)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  assignedSchedules Schedule[]    @relation("AssignedSchedules")
+  createdSchedules  Schedule[]    @relation("CreatedSchedules")
+  updatedSchedules  Schedule[]    @relation("UpdatedSchedules")
+  refreshTokens     RefreshToken[]
+  auditLogs         AuditLog[]    @relation("AuditActor")
+}
+
+model RefreshToken {
+  id                String    @id @default(cuid())
+  userId            String
+  tokenHash         String    @unique
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  userAgent         String?
+  ipAddress         String?
+  replacedByTokenId String?
+  createdAt         DateTime  @default(now())
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+}
+
+model Schedule {
+  id             String         @id @default(cuid())
+  title          String
+  description    String?
+  startAt        DateTime
+  endAt          DateTime
+  status         ScheduleStatus @default(PLANNED)
+  assignedUserId String
+  createdById    String
+  updatedById    String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  assignedUser   User           @relation("AssignedSchedules", fields: [assignedUserId], references: [id], onDelete: Cascade)
+  createdBy      User           @relation("CreatedSchedules", fields: [createdById], references: [id])
+  updatedBy      User?          @relation("UpdatedSchedules", fields: [updatedById], references: [id])
+
+  @@index([assignedUserId, startAt, endAt])
+}
+
+model AuditLog {
+  id          String      @id @default(cuid())
+  actorId     String?
+  action      AuditAction
+  entityType  String
+  entityId    String
+  description String
+  metadata    Json?
+  createdAt   DateTime    @default(now())
+  actor       User?       @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
