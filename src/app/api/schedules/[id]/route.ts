@@ -44,6 +44,7 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
+// Item route for reading, editing and cancelling a single schedule.
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const session = await requireSession(request);
@@ -69,6 +70,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
 }
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
+  return updateSchedule(request, context);
+}
+
+export async function PUT(request: NextRequest, context: RouteContext) {
+  return updateSchedule(request, context);
+}
+
+async function updateSchedule(request: NextRequest, context: RouteContext) {
   try {
     const session = await requireSession(request);
     const { id } = await context.params;

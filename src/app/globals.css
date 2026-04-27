@@ -1,11 +1,14 @@
 @import "tailwindcss";
 
+/* Global theme tokens and shared utility classes for the ClockHub interface. */
 :root {
   --background: #f5efe6;
   --foreground: #1e1813;
   --surface: rgba(255, 255, 255, 0.82);
   --surface-strong: #ffffff;
   --line: rgba(74, 48, 26, 0.12);
+  --font-display: Georgia, "Times New Roman", serif;
+  --font-body: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
 @theme inline {

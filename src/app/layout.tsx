@@ -1,20 +1,10 @@
 import type { Metadata } from "next";
-import { DM_Serif_Display, Space_Grotesk } from "next/font/google";
 
 import { AppProvider } from "@/components/providers/app-provider";
 
 import "./globals.css";
 
-const displayFont = DM_Serif_Display({
-  variable: "--font-display",
-  weight: "400",
-  subsets: ["latin"],
-});
-
-const bodyFont = Space_Grotesk({
-  variable: "--font-body",
-  subsets: ["latin"],
-});
+// Root layout wires shared styling and the client-side app state.
 
 export const metadata: Metadata = {
   title: "ClockHub",
@@ -27,10 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="es"
-      className={`${displayFont.variable} ${bodyFont.variable} h-full antialiased`}
-    >
+    <html lang="es" className="h-full antialiased">
       <body className="min-h-full">
         <AppProvider>{children}</AppProvider>
       </body>

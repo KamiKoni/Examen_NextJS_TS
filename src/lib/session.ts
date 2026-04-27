@@ -2,24 +2,12 @@ import type { NextRequest } from "next/server";
 
 import { isEnabledStatus } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
-import { verifyAccessToken } from "@/lib/auth";
-import { ACCESS_COOKIE_NAME } from "@/lib/constants";
 import { AppError } from "@/lib/errors";
+import { verifyToken } from "@/lib/middleware/auth";
 
+// Require a valid access cookie and hydrate the current user from the database.
 export async function requireSession(request: NextRequest) {
-  const accessToken = request.cookies.get(ACCESS_COOKIE_NAME)?.value;
-
-  if (!accessToken) {
-    throw new AppError(401, "UNAUTHORIZED", "Authentication is required.");
-  }
-
-  let payload: { sub: string };
-
-  try {
-    payload = verifyAccessToken(accessToken);
-  } catch {
-    throw new AppError(401, "UNAUTHORIZED", "Your session has expired.");
-  }
+  const payload = verifyToken(request);
 
   const user = await prisma.user.findUnique({
     where: { id: payload.sub },

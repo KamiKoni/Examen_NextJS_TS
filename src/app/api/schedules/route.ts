@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { fail, ok, parseBody } from "@/lib/api";
 import { createAuditLog } from "@/lib/audit";
 import { AppError } from "@/lib/errors";
+import { getPaginationParams, buildPaginationMeta } from "@/lib/pagination";
 import { assertCanManageAssignment, canManageSchedules } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { createScheduleSchema } from "@/lib/schemas";
@@ -40,17 +41,29 @@ const scheduleInclude = {
   },
 } as const;
 
+// Collection route for listing schedules and creating new assignments.
 export async function GET(request: NextRequest) {
   try {
     const session = await requireSession(request);
+    const pagination = getPaginationParams(request);
 
-    const schedules = await prisma.schedule.findMany({
-      where: session.role === "EMPLOYEE" ? { assignedUserId: session.id } : undefined,
-      include: scheduleInclude,
-      orderBy: [{ startAt: "asc" }, { createdAt: "desc" }],
-    });
+    const where = session.role === "EMPLOYEE" ? { assignedUserId: session.id } : undefined;
+    const [total, schedules] = await Promise.all([
+      prisma.schedule.count({ where }),
+      prisma.schedule.findMany({
+        where,
+        include: scheduleInclude,
+        orderBy: [{ startAt: "asc" }, { createdAt: "desc" }],
+        skip: pagination.offset,
+        take: pagination.limit,
+      }),
+    ]);
 
-    return ok({ schedules: schedules.map(serializeSchedule) });
+    return ok(
+      { schedules: schedules.map(serializeSchedule) },
+      200,
+      { pagination: buildPaginationMeta(total, pagination) },
+    );
   } catch (error) {
     return fail(error);
   }
@@ -83,6 +96,7 @@ export async function POST(request: NextRequest) {
     const startAt = new Date(payload.startAt);
     const endAt = new Date(payload.endAt);
 
+    // Conflict validation protects the assigned employee from overlapping active shifts.
     await assertNoScheduleConflict(prisma, {
       assignedUserId: payload.assignedUserId,
       startAt,

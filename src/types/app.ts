@@ -1,5 +1,6 @@
 import type { AuditAction, AppRole, ScheduleStatus, UserStatus } from "@/lib/constants";
 
+// Shared API and UI contracts live here so the client and server speak the same shape.
 export interface ApiErrorPayload {
   code: string;
   message: string;
@@ -10,6 +11,7 @@ export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   error?: ApiErrorPayload;
+  meta?: Record<string, unknown>;
 }
 
 export interface SessionUser {

@@ -14,6 +14,7 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
+// Item route for reading, updating and deactivating a single user record.
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const session = await requireSession(request);
@@ -45,6 +46,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
 }
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
+  return updateUser(request, context);
+}
+
+export async function PUT(request: NextRequest, context: RouteContext) {
+  return updateUser(request, context);
+}
+
+async function updateUser(request: NextRequest, context: RouteContext) {
   try {
     const session = await requireSession(request);
     const { id } = await context.params;
@@ -67,6 +76,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       throw new AppError(404, "NOT_FOUND", "User not found.");
     }
 
+    // Users may edit their own profile data, but role and status changes require an admin.
     const managingAnotherUser = session.id !== id;
 
     if (managingAnotherUser) {

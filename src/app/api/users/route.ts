@@ -1,38 +1,53 @@
 import bcrypt from "bcryptjs";
+import type { Prisma } from "@prisma/client";
 import { NextRequest } from "next/server";
 
 import { fail, ok, parseBody } from "@/lib/api";
 import { createAuditLog } from "@/lib/audit";
 import { createUserSchema } from "@/lib/schemas";
+import { getPaginationParams, buildPaginationMeta } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 import { AppError } from "@/lib/errors";
 import { assertCanManageRole, canManageUsers, canViewUserDirectory } from "@/lib/permissions";
 import { serializeUser } from "@/lib/serializers";
 
+// Collection route for listing users and creating new accounts.
 export async function GET(request: NextRequest) {
   try {
     const session = await requireSession(request);
+    const pagination = getPaginationParams(request);
 
     if (!canViewUserDirectory(session.role)) {
       throw new AppError(403, "FORBIDDEN", "You cannot list users.");
     }
 
-    const users = await prisma.user.findMany({
-      where: session.role === "MANAGER" ? { role: "EMPLOYEE" } : undefined,
-      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    const where: Prisma.UserWhereInput | undefined =
+      session.role === "MANAGER" ? { role: "EMPLOYEE" } : undefined;
+    const [total, users] = await Promise.all([
+      prisma.user.count({ where }),
+      prisma.user.findMany({
+        where,
+        orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+        skip: pagination.offset,
+        take: pagination.limit,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+    ]);
 
-    return ok({ users: users.map(serializeUser) });
+    return ok(
+      { users: users.map(serializeUser) },
+      200,
+      { pagination: buildPaginationMeta(total, pagination) },
+    );
   } catch (error) {
     return fail(error);
   }

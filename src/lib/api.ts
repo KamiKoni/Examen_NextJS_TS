@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { AppError, toAppError } from "@/lib/errors";
 import type { ApiResponse } from "@/types/app";
 
+// Shared route helpers keep validation and JSON response shapes consistent.
 export async function parseBody<T>(request: Request, schema: ZodSchema<T>) {
   let payload: unknown;
 
@@ -16,8 +17,8 @@ export async function parseBody<T>(request: Request, schema: ZodSchema<T>) {
   return schema.parse(payload);
 }
 
-export function ok<T>(data: T, status = 200) {
-  return NextResponse.json<ApiResponse<T>>({ success: true, data }, { status });
+export function ok<T>(data: T, status = 200, meta?: Record<string, unknown>) {
+  return NextResponse.json<ApiResponse<T>>({ success: true, data, meta }, { status });
 }
 
 export function fail(error: unknown) {
