@@ -12,6 +12,12 @@ ClockHub arranca con una pantalla de acceso enfocada en producto: presenta el co
 - auditoría de acciones críticas
 - carga y análisis de documentos
 
+## Documentación técnica
+
+- [Diagrama ER](./docs/ERD.md)
+- [Guía de entrega](./docs/DELIVERY.md)
+- [Recorrido del código](./docs/CODEBASE.md)
+
 ## Stack
 
 - Next.js 16 + React 19
