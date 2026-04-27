@@ -7,21 +7,21 @@ export const USER_STATUSES = ['ACTIVE', 'INACTIVE', 'SUSPENDED'] as const;
 export const SCHEDULE_STATUSES = ['PLANNED', 'APPROVED', 'CANCELLED'] as const;
 
 export const ROLE_OPTIONS = [
-  { value: 'ADMIN', label: 'Administrador' },
-  { value: 'MANAGER', label: 'Gerente' },
-  { value: 'EMPLOYEE', label: 'Empleado' },
+  { value: 'ADMIN', label: 'Admin' },
+  { value: 'MANAGER', label: 'Manager' },
+  { value: 'EMPLOYEE', label: 'Employee' },
 ] as const;
 
 export const USER_STATUS_OPTIONS = [
-  { value: 'ACTIVE', label: 'Activo' },
-  { value: 'INACTIVE', label: 'Inactivo' },
-  { value: 'SUSPENDED', label: 'Suspendido' },
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'INACTIVE', label: 'Inactive' },
+  { value: 'SUSPENDED', label: 'Suspended' },
 ] as const;
 
 export const SCHEDULE_STATUS_OPTIONS = [
-  { value: 'PLANNED', label: 'Planificado' },
-  { value: 'APPROVED', label: 'Aprobado' },
-  { value: 'CANCELLED', label: 'Cancelado' },
+  { value: 'PLANNED', label: 'Planned' },
+  { value: 'APPROVED', label: 'Approved' },
+  { value: 'CANCELLED', label: 'Cancelled' },
 ] as const;
 export const AUDIT_ACTIONS = [
   'AUTH_LOGIN',

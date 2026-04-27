@@ -50,13 +50,13 @@ export function DocumentUploadPanel({
       if (!file) return;
 
       if (!isValidFileType(file)) {
-        setError('Solo se permiten archivos PDF, XLSX y CSV.');
+        setError('Only PDF, XLSX, and CSV files are allowed.');
         setSelectedFile(null);
         return;
       }
 
       if (!isValidFileSize(file)) {
-        setError('El archivo no debe superar 50MB.');
+        setError('The file must be smaller than 50MB.');
         setSelectedFile(null);
         return;
       }
@@ -71,7 +71,7 @@ export function DocumentUploadPanel({
     event.preventDefault();
 
     if (!selectedFile) {
-      setError('Por favor selecciona un archivo.');
+      setError('Please select a file.');
       return;
     }
 
@@ -92,7 +92,7 @@ export function DocumentUploadPanel({
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error?.message || 'Error al subir el archivo.');
+        throw new Error(result.error?.message || 'The file upload failed.');
       }
 
       setSuccess(true);
@@ -108,7 +108,7 @@ export function DocumentUploadPanel({
 
       onUpload?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido.');
+      setError(err instanceof Error ? err.message : 'Unknown upload error.');
     } finally {
       setUploading(false);
     }
@@ -121,8 +121,8 @@ export function DocumentUploadPanel({
   return (
     <form className="panel space-y-4" onSubmit={handleSubmit}>
       <div>
-        <p className="section-kicker">Análisis de documentos</p>
-        <h2 className="section-title">Carga y analiza archivos</h2>
+        <p className="section-kicker">Document analysis</p>
+        <h2 className="section-title">Upload and analyze files</h2>
       </div>
 
       {/* Validation and API failures are shown inline to keep the upload flow self-contained. */}
@@ -143,24 +143,22 @@ export function DocumentUploadPanel({
           role="status"
           aria-live="polite"
         >
-          ✓ Archivo procesado correctamente.
+          File processed successfully.
         </div>
       )}
 
       {/* Spreadsheet uploads can return row-level import results from the backend. */}
       {processingResult && (
         <div className="rounded-lg border border-blue-300 bg-blue-50 p-4 text-sm">
-          <h4 className="font-medium text-blue-800 mb-2">
-            Resultado del procesamiento:
-          </h4>
+          <h4 className="mb-2 font-medium text-blue-800">Processing result:</h4>
           <div className="space-y-1">
             <p className="text-blue-700">
-              ✓ <strong>{processingResult.schedulesCreated}</strong> horario(s)
-              creado(s) exitosamente
+              <strong>{processingResult.schedulesCreated}</strong> schedule(s)
+              created successfully
             </p>
             {processingResult.errors.length > 0 && (
               <div className="text-red-600">
-                <p className="font-medium">Errores encontrados:</p>
+                <p className="font-medium">Issues found:</p>
                 <ul className="list-disc list-inside ml-4 mt-1">
                   {processingResult.errors.map((error, index) => (
                     <li key={index} className="text-xs">
@@ -180,7 +178,7 @@ export function DocumentUploadPanel({
           htmlFor="file-upload"
           className="block text-sm font-medium text-stone-700"
         >
-          Selecciona un archivo (PDF, XLSX o CSV)
+          Select a file (PDF, XLSX, or CSV)
         </label>
         <input
           ref={fileInputRef}
@@ -189,7 +187,7 @@ export function DocumentUploadPanel({
           accept={ALLOWED_EXTENSIONS}
           onChange={handleFileSelect}
           disabled={uploading || disabled}
-          title="Selecciona un archivo PDF, XLSX o CSV para analizar"
+          title="Select a PDF, XLSX, or CSV file to analyze"
           aria-describedby={selectedFile ? 'file-info' : undefined}
           className="block w-full text-sm text-stone-500 file:mr-4 file:rounded-lg file:border-0 file:bg-stone-100 file:px-4 file:py-2 file:text-sm file:font-medium file:text-stone-700 hover:file:bg-stone-200 focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"
         />
@@ -199,7 +197,7 @@ export function DocumentUploadPanel({
             className="text-xs text-stone-500"
             aria-live="polite"
           >
-            Archivo: {selectedFile.name} ({formatFileSize(selectedFile.size)}MB)
+            File: {selectedFile.name} ({formatFileSize(selectedFile.size)}MB)
           </p>
         )}
       </div>
@@ -211,13 +209,13 @@ export function DocumentUploadPanel({
         className="primary-button w-full disabled:opacity-50 disabled:cursor-not-allowed"
         aria-describedby={!selectedFile ? 'file-required' : undefined}
       >
-        {uploading ? 'Procesando...' : 'Subir y analizar'}
+        {uploading ? 'Processing...' : 'Upload and analyze'}
       </button>
 
       {/* Hidden error message for screen readers */}
       {!selectedFile && (
         <div id="file-required" className="sr-only">
-          Debes seleccionar un archivo antes de continuar
+          You must select a file before continuing
         </div>
       )}
     </form>

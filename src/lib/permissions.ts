@@ -42,9 +42,12 @@ export function assertCanViewUser(actorRole: AppRole, actorId: string, targetUse
 
 export function assertCanManageRole(
   actorRole: AppRole,
-  targetRole: AppRole,
-  requestedRole?: AppRole,
+  _targetRole: AppRole,
+  _requestedRole?: AppRole,
 ) {
+  void _targetRole;
+  void _requestedRole;
+
   if (actorRole === "ADMIN") {
     return;
   }

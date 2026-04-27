@@ -20,6 +20,7 @@ import type {
   CreateUserPayload,
   DashboardSummary,
   NotificationState,
+  RegisterPayload,
   SessionUser,
   UpdateSchedulePayload,
   UpdateUserPayload,
@@ -38,6 +39,7 @@ interface AppContextValue {
   busy: boolean;
   notification: NotificationState | null;
   login: (email: string, password: string) => Promise<void>;
+  signup: (payload: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   refreshDashboard: () => Promise<void>;
   createUser: (payload: CreateUserPayload) => Promise<void>;
@@ -188,6 +190,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function signup(payload: RegisterPayload) {
+    setBusy(true);
+
+    try {
+      await requestData<{ user: SessionUser }>('/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      await login(payload.email, payload.password);
+      setNotification({
+        tone: 'success',
+        message: 'Account created successfully.',
+      });
+    } catch (error) {
+      setNotification({
+        tone: 'error',
+        message: getErrorMessage(error),
+      });
+      throw error;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function logout() {
     setBusy(true);
 
@@ -244,6 +271,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     busy,
     notification,
     login,
+    signup,
     logout,
     refreshDashboard,
     createUser: async (payload) =>
@@ -306,6 +334,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     busy,
     notification,
     login,
+    signup,
     logout,
     clearNotification: value.clearNotification,
   };

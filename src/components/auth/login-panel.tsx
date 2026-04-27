@@ -54,18 +54,18 @@ export function LoginPanel() {
             </div>
 
             <h1 className="mt-10 max-w-2xl font-serif text-5xl leading-tight lg:text-6xl">
-              Tu operación diaria, turnos y auditoría, lista para entrar.
+              Daily operations, schedules, and audit trails in one secure place.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-stone-200/85">
-              Administra usuarios, horarios y documentos desde una sola vista, con
-              permisos por rol, trazabilidad y sesiones seguras.
+              Manage users, schedules, and documents from one workspace with
+              role-based permissions, traceability, and secure sessions.
             </p>
 
             <div className="mt-10 grid gap-4 sm:grid-cols-3">
               {[
-                "Sesiones con cookies HttpOnly",
-                "Roles para admin, manager y employee",
-                "Auditoría y validaciones sobre cambios",
+                "Sessions backed by HttpOnly cookies",
+                "Role-aware access for admin, manager, and employee",
+                "Audit visibility and validation around every change",
               ].map((item) => (
                 <div
                   key={item}
@@ -79,21 +79,21 @@ export function LoginPanel() {
             <div className="mt-10 grid gap-4 md:grid-cols-2">
               <div className="rounded-[1.6rem] border border-white/10 bg-black/10 p-5 backdrop-blur-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.26em] text-amber-100/80">
-                  Estado
+                  Status
                 </p>
-                <p className="mt-3 font-serif text-3xl text-white">Control centralizado</p>
+                <p className="mt-3 font-serif text-3xl text-white">Central oversight</p>
                 <p className="mt-3 text-sm leading-6 text-stone-200/80">
-                  Flujos operativos, credenciales y seguimiento en un acceso compacto.
+                  Operations, credentials, and daily oversight in one focused entry point.
                 </p>
               </div>
               <div className="rounded-[1.6rem] border border-white/10 bg-white/8 p-5 backdrop-blur-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.26em] text-amber-100/80">
-                  Señal rápida
+                  Quick signal
                 </p>
                 <div className="mt-4 flex items-end justify-between gap-4">
                   <div>
                     <p className="font-serif text-4xl text-white">3</p>
-                    <p className="mt-2 text-sm text-stone-200/80">perfiles demo listos</p>
+                    <p className="mt-2 text-sm text-stone-200/80">demo accounts ready</p>
                   </div>
                   <div className="h-16 w-24 rounded-[1.2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.24),rgba(255,255,255,0.05))]" />
                 </div>
@@ -111,11 +111,10 @@ export function LoginPanel() {
                   Sign in
                 </p>
                 <h2 className="mt-3 font-serif text-4xl text-stone-900">
-                  Acceso a dashboard
+                  Dashboard access
                 </h2>
                 <p className="mt-3 max-w-md text-sm leading-6 text-stone-500">
-                  Inicia sesión con un usuario existente para entrar al panel
-                  administrativo.
+                  Sign in with an existing account to enter the operations dashboard.
                 </p>
               </div>
               <div className="hidden rounded-full bg-amber-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-amber-800 sm:block">
@@ -149,13 +148,23 @@ export function LoginPanel() {
               </label>
 
               <button className="primary-button w-full" disabled={busy} type="submit">
-                {busy ? "Procesando..." : "Entrar al sistema"}
+                {busy ? "Processing..." : "Enter workspace"}
               </button>
             </form>
 
+            <p className="text-sm leading-6 text-stone-500">
+              Need a new account?{" "}
+              <Link
+                className="font-semibold text-stone-700 underline-offset-4 hover:text-stone-900 hover:underline"
+                href="/auth/signup"
+              >
+                Create account
+              </Link>
+            </p>
+
             <div className="rounded-[1.6rem] border border-stone-200 bg-stone-50/90 p-4">
               <div className="flex items-center justify-between gap-4">
-                <p className="text-sm font-semibold text-stone-900">Credenciales demo</p>
+                <p className="text-sm font-semibold text-stone-900">Demo credentials</p>
                 <p className="text-xs uppercase tracking-[0.22em] text-stone-400">Seed</p>
               </div>
               <div className="mt-4 space-y-3 text-sm text-stone-600">
@@ -178,7 +187,7 @@ export function LoginPanel() {
               className="inline-flex text-sm font-semibold text-stone-500 underline-offset-4 hover:text-stone-700 hover:underline"
               href="https://nextjs.org/docs"
             >
-              Documentación de Next.js
+              Next.js documentation
             </Link>
           </div>
         </section>

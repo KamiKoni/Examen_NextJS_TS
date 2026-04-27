@@ -77,6 +77,12 @@ export interface CreateUserPayload {
   status?: UserStatus;
 }
 
+export interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+}
+
 export interface UpdateUserPayload {
   name?: string;
   email?: string;

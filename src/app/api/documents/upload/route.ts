@@ -26,7 +26,7 @@ async function processScheduleData(
   };
 
   if (!parsedData || !Array.isArray(parsedData)) {
-    result.errors.push('No se encontraron datos válidos en el archivo');
+    result.errors.push('No valid data was found in the file.');
     return result;
   }
 
@@ -44,7 +44,7 @@ async function processScheduleData(
         const department = row['Department'] || row['Departamento'];
 
         if (!employeeId || !name || !date || !startTime || !endTime) {
-          result.errors.push(`Fila incompleta: ${JSON.stringify(row)}`);
+          result.errors.push(`Incomplete row: ${JSON.stringify(row)}`);
           continue;
         }
 
@@ -87,8 +87,8 @@ async function processScheduleData(
           endAt,
         });
 
-        const title = `Turno ${department || 'General'} - ${name}`;
-        const description = `Horario importado desde archivo. Departamento: ${department || 'N/A'}`;
+        const title = `Shift ${department || 'General'} - ${name}`;
+        const description = `Schedule imported from file. Department: ${department || 'N/A'}`;
 
         await db.schedule.create({
           data: {
@@ -106,9 +106,9 @@ async function processScheduleData(
         result.created++;
       } catch (error) {
         const errorMsg =
-          error instanceof Error ? error.message : 'Error desconocido';
+          error instanceof Error ? error.message : 'Unknown processing error';
         result.errors.push(
-          `Error procesando fila ${JSON.stringify(row)}: ${errorMsg}`
+          `Error processing row ${JSON.stringify(row)}: ${errorMsg}`
         );
       }
     }

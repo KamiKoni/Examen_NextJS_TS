@@ -27,7 +27,7 @@ export function FeedbackBanner() {
           onClick={clearNotification}
           className="cursor-pointer rounded-full bg-black/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]"
         >
-          Cerrar
+          Dismiss
         </button>
       </div>
     </div>

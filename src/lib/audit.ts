@@ -1,8 +1,4 @@
-import type {
-  Prisma,
-  PrismaClient,
-  AuditAction as PrismaAuditAction,
-} from '@prisma/client';
+import type { Prisma, PrismaClient } from '@prisma/client';
 import type { AuditAction } from '@/lib/constants';
 
 // Central helper for writing audit rows from any transactional context.

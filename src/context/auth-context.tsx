@@ -2,7 +2,7 @@
 
 import { createContext, useContext } from "react";
 
-import type { NotificationState, SessionUser } from "@/types/app";
+import type { NotificationState, RegisterPayload, SessionUser } from "@/types/app";
 
 // Auth context exposes session status and authentication actions to client components.
 export interface AuthContextValue {
@@ -11,6 +11,7 @@ export interface AuthContextValue {
   busy: boolean;
   notification: NotificationState | null;
   login: (email: string, password: string) => Promise<void>;
+  signup: (payload: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   clearNotification: () => void;
 }
