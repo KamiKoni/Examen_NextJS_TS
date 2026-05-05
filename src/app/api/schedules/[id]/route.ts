@@ -209,7 +209,10 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
         );
       }
 
-      const deleted = await prisma.schedule.delete({ where: { id } });
+      const deleted = await prisma.schedule.delete({
+        where: { id },
+        include: scheduleInclude,
+      });
 
       await createAuditLog(prisma, {
         actorId: session.id,
