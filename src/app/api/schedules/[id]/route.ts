@@ -209,10 +209,16 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
         );
       }
 
-      const deleted = (await prisma.schedule.delete({
+      const deleted = await prisma.schedule.findUnique({
         where: { id },
         include: scheduleInclude,
-      })) as ScheduleWithRelations;
+      });
+
+      if (!deleted) {
+        throw new AppError(404, "NOT_FOUND", "Schedule not found.");
+      }
+
+      await prisma.schedule.delete({ where: { id } });
 
       await createAuditLog(prisma, {
         actorId: session.id,
