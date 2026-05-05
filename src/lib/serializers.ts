@@ -30,7 +30,7 @@ export function serializeUser(user: UserShape): UserRecord {
   };
 }
 
-type ScheduleWithRelations = Schedule & {
+export type ScheduleWithRelations = Schedule & {
   assignedUser: RelatedUserShape;
   createdBy: RelatedUserShape;
   updatedBy: RelatedUserShape | null;

@@ -9,7 +9,7 @@ import {
 } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { updateScheduleSchema } from "@/lib/schemas";
-import { serializeSchedule } from "@/lib/serializers";
+import { serializeSchedule, type ScheduleWithRelations } from "@/lib/serializers";
 import { requireSession } from "@/lib/session";
 import { assertNoScheduleConflict } from "@/lib/schedules";
 
@@ -209,10 +209,10 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
         );
       }
 
-      const deleted = await prisma.schedule.delete({
+      const deleted = (await prisma.schedule.delete({
         where: { id },
         include: scheduleInclude,
-      });
+      })) as ScheduleWithRelations;
 
       await createAuditLog(prisma, {
         actorId: session.id,
